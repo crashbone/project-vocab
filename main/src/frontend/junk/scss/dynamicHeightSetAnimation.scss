@@ -1,0 +1,22 @@
+// .dynamicHeightSetAnimation-enter-active,
+// .dynamicHeightSetAnimation-leave-active {
+//   position: absolute;   // float over wrapper
+//   width: 100%;
+// }
+@keyframes fadeSlideIn {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeSlideOut {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-10px); opacity: 0; }
+}
+
+.dynamicHeightSetAnimation-enter-active {
+  animation: fadeSlideIn 0.35s ease forwards;
+}
+
+.dynamicHeightSetAnimation-leave-active {
+  animation: fadeSlideOut 0.25s ease forwards;
+}

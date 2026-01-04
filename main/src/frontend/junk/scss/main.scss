@@ -1,0 +1,116 @@
+// @import '@/junk/Page.scss';
+
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+html {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  overscroll-behavior: none;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html:not(.mobile) body {
+  padding: 10px 0;
+  margin: auto;
+
+  #app {
+    height: 852px;
+    max-height: 100%;
+  }
+}
+
+body {
+  // margin: auto;
+  // margin-top: -50px;
+  padding: 0;
+  width: 393px;
+  // height: 852px;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Nunito';
+  color: $color-lilac-700;
+}
+
+* {
+  box-sizing: border-box;
+  margin: unset;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+body>#app {
+  width: 100%;
+  height: 100%;
+}
+
+html.mobile .app-frame {}
+
+html:not(.mobile) .app-frame {
+  border-radius: 80px;
+  outline: 2px solid #202020;
+}
+
+.app-frame {
+  // margin-top: 115px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(160deg, $color-pastel-pink-050, $color-pastel-pink-100);
+  // box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+
+}
+
+.header1 {
+  // UPPERCASE, BOLD, LILAC
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 16px;
+  color: $color-lilac-700;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+textarea, input[type=text] {
+  display: block;
+
+  width: inherit;
+  height: inherit;
+  font-weight: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  text-align: inherit;
+  word-break: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+
+  padding: 0;
+  padding-inline: 0;
+  padding-block: 0;
+  outline: 1px solid $color-pastel-pink-250;
+  border: unset;
+  background-color: unset;
+  resize: none;
+
+  
+  color: inherit;
+  overflow: visible;
+  field-sizing: content;
+}

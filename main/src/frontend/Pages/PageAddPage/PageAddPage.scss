@@ -1,0 +1,77 @@
+// PageAddPage uses shared styles from
+// - Page.scss
+// - PageWithWords.scss
+
+.page.add_page {
+  .row {
+    display: flex;
+    gap: 10px;
+
+    .button {
+      flex-grow: 1;
+      word-break: break-all;
+      width: 0;
+      font-size: 16px;
+
+      .text.placeholder {
+        opacity: 0.7;
+        font-weight: 400;
+      }
+
+      .sparkles-component {
+        // TODO: maybe not use them, instead of hiding them
+        display: none;
+      }
+    }
+  }
+
+  textarea.raw-mode {
+    height: 100%;
+    padding: 12px;
+    border-radius: 20px;
+    background-color: rgba(255,255,255,0.25);
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .bottom-bar {
+    // width: 353px;
+    display: flex;
+    justify-content: space-evenly;
+    padding-inline: 12px;
+    --border-radius: 32px; // height: 64px
+
+    .bottom-bar-liquid-glass {
+
+      &.block1,
+      &.block3 {
+        .liquid-glass-card-slot-content {
+          width: 60px;
+        }
+      }
+
+      &.block2 {
+        .liquid-glass-card-slot-content {
+          padding-inline: 16px;
+          gap: 10px;
+        }
+      }
+    }
+
+    .bottom-bar-button {
+      position: relative;
+      padding: 12px 0;
+
+      .animation-overlay {
+          content: "";
+          position: absolute;
+          background-color: rgba(0, 0, 0, 0.06);
+          top: 3px;
+          bottom: 3px;
+          left: -10px;
+          right: -10px;
+          border-radius: 30px;
+          // animation: zoomFadeIn 0.35s ease-in-out;
+        }
+    }
+  }
+}

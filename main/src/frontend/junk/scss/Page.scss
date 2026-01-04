@@ -1,0 +1,88 @@
+.page {
+  .top-bar {
+    --border-radius: 0;
+    display: flex;
+    align-items: flex-end;
+
+    .top-bar-inner-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 0 16px 0 20px;
+
+      .left {
+        width: 27px;
+        height: 24px;
+      }
+
+      .right {
+        display: flex;
+        gap: 12px;
+
+        .profile-icon {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          border-radius: 50%;
+          background-color: $color-lilac-700;
+          color: $color-pastel-pink-200;
+          width: 31px;
+          height: 31px;
+          padding-top: 2px;
+          font-size: 20px;
+          transform: translateY(-2px);
+          font-weight: 900;
+        }
+      }
+    }
+  }
+
+  .bottom-bar {
+    position: absolute;
+    bottom: 36px;
+    height: 64px;
+    left: 0;
+    right: 0;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: $color-lilac-700;
+    font-weight: 700;
+
+    .bottom-bar-button {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      >* {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        white-space: nowrap;
+      }
+    }
+
+    .bottom-bar-liquid-glass {
+      .liquid-glass {
+        box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+        &::before {
+          background: linear-gradient(to bottom, rgba($color-pastel-pink-050, 0.7), rgba($color-pastel-pink-100, 0.7));
+        }
+      }
+    }
+
+    .liquid-glass-content {
+      width: 100%;
+
+      .liquid-glass-card-slot-content {
+        border-radius: 30px;
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-evenly;
+      }
+    }
+  }
+}

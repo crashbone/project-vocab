@@ -1,0 +1,178 @@
+$pageTopContainerHeight: 33px;
+
+* {
+  box-sizing: border-box;
+  margin: unset;
+  flex-shrink: 0;
+}
+
+html:not(.mobile) {
+  .page.dashboard {
+    .top-bar {
+      height: #{$unusableSpaceTop + $paddingTop + $pageTopContainerHeight};
+    }
+  }
+}
+
+.page.dashboard {
+  .top-bar {
+    height: #{$paddingTop + $pageTopContainerHeight};
+
+    .top-bar-inner-container {
+      height: $pageTopContainerHeight;
+    }
+
+    .middle {
+      flex-grow: 1;
+    }
+  }
+
+
+
+  .page-content-container-1 {
+    margin-top: 16px;
+    height: 0;
+    flex-grow: 1;
+    overflow: scroll;
+    padding: 0 0 #{16px + 36px} 0; // 36px unusable space, 16px padding
+  }
+
+  .welcome-message {
+    display: flex;
+    width: 343px;
+    height: 125px;
+    border: 4px solid $color-pastel-pink-250;
+    border-radius: 20px;
+    margin: 0 auto;
+
+    background: linear-gradient(60deg, $color-pastel-pink-100, white 40%);
+
+    .welcome-left {
+      position: relative;
+      width: 104px;
+
+      .welcome-img {
+        position: absolute;
+        top: 40px;
+        left: 24px;
+        width: 80px;
+        height: 80px;
+        background: url('/main/src/frontend/assets/img/welcome-avatar.png');
+        background-size: cover;
+      }
+    }
+
+    .welcome-right {
+      position: relative;
+      flex-grow: 1;
+
+      .welcome-right-inner-container {
+        position: absolute;
+        left: 22px;
+        top: 33px;
+        width: 80%;
+      }
+    }
+
+    .welcome-subtitle {
+      font-weight: 700;
+    }
+
+    .welcome-text {
+      font-weight: 500;
+    }
+  }
+
+  .section {
+    margin-top: 34px;
+
+    .sub-title {
+      margin-left: 22px;
+      height: 20px;
+    }
+
+    .word-page-buttons-container {
+      height: 100%;
+      margin-top: 8px;
+      padding: 0 16px;
+      z-index: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
+
+  .bullets {
+    display: none !important;
+  }
+
+  .button {
+    height: 61px;
+    position: relative;
+    font-size: 13px;
+    font-weight: 500;
+
+    .top-left,
+    .bottom-left,
+    .top-right,
+    .bottom-right {
+      position: absolute;
+    }
+
+    .button-content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .bubble_effect {
+      left: 5px;
+      top: 4px;
+      width: 349px;
+      height: 24px;
+    }
+
+    .top-left {
+      top: 10px;
+      left: 24px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .bottom-left {
+      left: 24px;
+      bottom: 9px;
+    }
+
+    .top-right {
+      top: 11px;
+      right: 24px;
+      font-weight: 700;
+    }
+
+    .bottom-right {
+      bottom: 9px;
+      right: 24px;
+    }
+  }
+
+  .add-page-button {
+    position: absolute;
+    z-index: 1;
+    right: 32px;
+    bottom: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: $color-lilac-700;
+    color: white;
+    height: 60px;
+    width: 60px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 25px;
+    box-shadow: 0 0 10px -1px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+  }
+}

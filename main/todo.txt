@@ -1,0 +1,29 @@
+REAL TODOs:
+1. Publish Apps
+- i. Domain + Host
+- ii. 2. Build APP
+- iii. Publish     a. iOS App store     b. Google Play Store
+2. let users delete pages
+3. CLS: things jumping in & out
+- https://www.youtube.com/watch?v=LCZzLmIp0H0
+- 14:40
+4. FID: Time until a click finishes performing
+
+NICE TO HAVE TODOs:
+1. splash screen
+2. animations
+3. liquid glass border
+4. search
+5. lastEntry update
+6. frequency update
+7. state manager
+
+
+TECH DEPT TODOs:
+1. remove size80px
+2. button - context-menu-button ...
+999: get rid of //TODOs
+3. 
+  i. proper scss for: page.landing page
+  ii. .page:not(.dashboard:not(.landing)) 
+

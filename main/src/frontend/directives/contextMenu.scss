@@ -1,0 +1,32 @@
+.context-menu {
+  position: absolute;
+  border: 1px solid rgba(0,0,0,0.4);
+  background: linear-gradient(60deg, $color-pastel-pink-100, white 40%);
+  color: $color-lilac-800;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 6px 4px;
+  min-width: 120px;
+  z-index: -1000;
+  opacity: 0;
+  font-size: 13px;
+  transform: scale(0.6);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+
+  &.visible {
+    z-index: 1000;
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .context-menu-button {
+    width: 100%;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: $color-pastel-pink-100;
+    }
+  }
+}

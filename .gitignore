@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+.venv
+
+# Builds
+dist
+main/src/backend/dist/*
+
+
+main/src/frontend/remastered/*
+main/src/hidden/*
+
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+
+# Editor directories
+## VS Code
+.vscode/*
+!.vscode/extensions.json
+
+## JetBrains
+.idea
+
+## Visual Studio
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+## Vim / Vi
+*.sw?
+
+# Others (not specificied)
+*.tsbuildinfo

@@ -1,0 +1,40 @@
+.page.words {
+  .bottom-bar {
+    // width: 353px;
+    margin: auto;
+    --border-radius: 30px;
+
+    .bottom-bar-button {
+      height: 40px;
+      max-width: 55px; // width to align items, max 55, so buttons with long text doesn't take too much space
+    }
+
+    .liquid-glass-card-slot-content {
+      padding: 12px 0;
+    }
+  }
+}
+
+input[type=text], textarea {
+  min-width: 50px;
+  word-break: break-all;
+  border-radius: 5px;
+}
+
+.button {
+  &.type1 {
+    input[type=text], textarea {
+      background: $color-pastel-pink-100;
+    }
+  }
+  &.type2 {
+    input[type=text], textarea {
+      background: $color-peach-100;
+    }
+  }
+  &.type3 {
+    input[type=text], textarea {
+      background: $color-cyan-100;
+    }
+  }
+}

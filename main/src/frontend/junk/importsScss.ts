@@ -1,0 +1,7 @@
+import '@/junk/scss/main.scss'
+import '@/junk/scss/Page.scss'
+import '@/junk/scss/PageWithWords.scss'
+import '@/junk/scss/dynamicHeightSetAnimation.scss'
+import '@/junk/scss/animation.scss'
+import '@/directives/tooltip.scss'
+import '@/directives/contextMenu.scss'

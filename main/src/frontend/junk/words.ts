@@ -1,0 +1,1 @@
+export const words = ["Schaffner", "einsam", "Flexi", "erholen", "Verwaltung", "Word", "Word"]
