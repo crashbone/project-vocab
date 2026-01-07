@@ -1,5 +1,12 @@
 <template>
     <div class="app-frame page dashboard">
+        <!-- TODO: This is written for testing purposes until making sure back-end is working
+            FIX IT!
+        -->
+        <div class="admin-bar" style="position: absolute; top: 60px; width: 100%; padding: 0 2px" v-if="initialData && initialData.user.email === 'offcrashbone@gmail.com'">
+            <button @click="onAdminClick">ADMIN</button>
+        </div>
+
         <!-- TOP BAR -->
         <div class="top-bar">
             <div class="top-bar-inner-container">
@@ -58,7 +65,7 @@
                     </div>
                 </div>
             </template>
-            <div v-else>initialData: {{  initialData }}</div>
+            <div v-else>initialData: {{ initialData }}</div>
             <div @click="newPageClick" class="add-page-button">+</div>
 
         </div>
@@ -75,18 +82,19 @@ import type { InitialDataWithUser } from '@/junk/fetchInitialData';
 import { DashboardModel } from '@/wordManagement/DashboardModel';
 import { subscribe } from '@/junk/EventBus';
 import { globalData } from '@/junk/globalData';
+import { sendTriggerGitUpdateRequest } from "@/junk/admin/triggerGitUpdateRequest";
 
 // MOVE IT TO SOMEWHERE GLOBAL
 const initialData = ref<InitialDataWithUser | undefined>(undefined);
 
-// subscribe('initialDataFetched', (id: InitialData) => {
-//     if (!id.logged_in) {
-//         toLandingPage();
-//         return;
-//     }
+subscribe('initialDataFetched', (id: InitialData) => {
+    if (!id.logged_in) {
+        toLandingPage();
+        return;
+    }
 
-//     initialData.value = (id as InitialDataWithUser);
-// })
+    initialData.value = (id as InitialDataWithUser);
+})
 
 
 const router = useRouter()
@@ -107,6 +115,12 @@ const onDeleteClick = (pageId: number) => {
                 window.location.reload();
             }, 250)
         }, 2000)
+    })
+}
+
+const onAdminClick = () => {
+    sendTriggerGitUpdateRequest().then((res) => {
+        console.log(res);
     })
 }
 
