@@ -2,7 +2,7 @@
     <div class="top-bar">
         <div class="top-bar-inner-container">
             <div class="left pointer" @click="toDashboard">
-                <SvgX url="/main/src/assets/svg/left-arrow.svg" :width="24" :height="24" />
+                <SvgX url="/main/src/frontend/assets/svg/left-arrow.svg" :width="24" :height="24" />
             </div>
             <div class="middle">
                 <div class="middle-left header1">
@@ -17,7 +17,7 @@
                 </div>
 
                 <div v-if="titleAdjustable && !editTitleMode" class="middle-right pointer" @click="onTitleClick">
-                    <SvgX url="/main/src/assets/svg/pencil.svg" :width="11" :height="11"
+                    <SvgX url="/main/src/frontend/assets/svg/pencil.svg" :width="11" :height="11"
                           style="transform: translateY(1px);" />
                 </div>
             </div>

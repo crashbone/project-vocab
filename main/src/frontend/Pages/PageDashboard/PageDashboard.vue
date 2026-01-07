@@ -15,7 +15,7 @@
                     PROJECT VOCAB
                 </div>
                 <div class="right">
-                    <SvgX class="pointer" url="/main/src/assets/svg/search.svg" :width="27" :height="27" />
+                    <SvgX class="pointer" url="/main/src/frontend/assets/svg/search.svg" :width="27" :height="27" />
                     <div v-if="initialData" class="profile-icon pointer">{{ initialData.user.name[0] }}</div>
                 </div>
             </div>

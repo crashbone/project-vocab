@@ -6,7 +6,7 @@
                              :title="title"
                              @update:title="title = $event">
             <template #right>
-                <SvgX class="pointer" url="/main/src/assets/svg/check.svg" :width="28" :height="28" />
+                <SvgX class="pointer" url="/main/src/frontend/assets/svg/check.svg" :width="28" :height="28" />
                 <div class="pointer profile-icon">C</div>
             </template>
         </PageWithWordsTopBar>
@@ -62,7 +62,7 @@
                         // }
                     ]" :key="index" @click="obj.click">
                         <div class="bottom-bar-button-top">
-                            <SvgX :url="`/main/src/assets/svg/${obj.icon}.svg`" :width="obj.size" :height="obj.size"
+                            <SvgX :url="`/main/src/frontend/assets/svg/${obj.icon}.svg`" :width="obj.size" :height="obj.size"
                                   :style="obj.style || ''" />
                         </div>
                         <div class="bottom-bar-button-bottom">{{ obj.name }}</div>

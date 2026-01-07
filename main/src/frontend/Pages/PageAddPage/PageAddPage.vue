@@ -115,7 +115,7 @@ das Kind    Child`
                             <div v-if="obj.active?.()" class="animation-overlay"></div>
                         </transition>
                         <div class="bottom-bar-button-top">
-                            <SvgX :url="`/main/src/assets/svg/${obj.icon}.svg`" :width="obj.size" :height="obj.size"
+                            <SvgX :url="`/main/src/frontend/assets/svg/${obj.icon}.svg`" :width="obj.size" :height="obj.size"
                                   :style="obj.style || ''" />
                         </div>
                         <div class="bottom-bar-button-bottom">{{ obj.name }}</div>
