@@ -28,7 +28,8 @@ export default defineConfig({
     hmr: {
       host: getFrontendIP(), // your public IP / nip.io hostname
       protocol: 'wss',               // force WebSocket over HTTPS
-      port: 443
+      port: 443,
+      overlay: false
     },
     https: {
       key: fs.readFileSync(getSSL().key),
