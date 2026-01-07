@@ -1,40 +1,8 @@
-import psycopg2, os
 from fastapi import APIRouter, Request, Cookie, Depends
-from psycopg2.extras import RealDictCursor
 from backend.jwt_handler import verify_app_jwt
-
-POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT")
-POSTGRES_DB = os.getenv("POSTGRES_DB")
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+from backend.db_util.get_user_by_id import get_user_by_id
 
 router = APIRouter()
-
-
-def get_user_by_id(user_id: int):
-    try:
-        conn = psycopg2.connect(
-            host=POSTGRES_HOST,
-            port=POSTGRES_PORT,
-            dbname=POSTGRES_DB,
-            user=POSTGRES_USER,
-            password=POSTGRES_PASSWORD,
-            cursor_factory=RealDictCursor,
-        )
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT user_id, name, email, avatar_url FROM users WHERE user_id = %s;",
-            (user_id,),
-        )
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return user
-    except Exception as e:
-        print("Database error:", e)
-        return None
-
 
 def auth_required(access_token: str = Cookie(None)):
     if not access_token:

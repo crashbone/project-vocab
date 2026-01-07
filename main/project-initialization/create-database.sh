@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# UNCOMMENT AND FILL IN VALUES BELOW
-
-# ADMIN_USER=""
-# NEW_DB_NAME=""
-# HOST=""
-# PORT=""
+# Get connection details via user input
+read -p "Enter Admin Username: " ADMIN_USER
+read -p "Enter New Database Name: " NEW_DB_NAME
+read -p "Enter Host (e.g., localhost): " HOST
+read -p "Enter Port (e.g., 5432): " PORT
 
 # Detect OS and set psql path
 if [[ "$OSTYPE" == "darwin"* ]]; then

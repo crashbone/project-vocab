@@ -33,3 +33,6 @@ __pycache__/
 
 # Others (not specificied)
 *.tsbuildinfo
+
+# Pretend server
+pretendServer
