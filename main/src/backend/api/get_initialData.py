@@ -37,7 +37,7 @@ def get_initial_data(request: Request, user=Depends(auth_required)):
         initial_data["logged_in"] = True
         initial_data["user"] = {
             "user_id": user["user_id"],
-            "name": user["name"],
+            "name": 'YEY', # user["name"],
             "email": user["email"],
             "avatar_url": user["avatar_url"]
         }
