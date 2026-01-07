@@ -34,9 +34,30 @@ SRC_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 # project-vocab/main
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
+# --- INCREMENTAL LOGGING LOGIC ---
+def get_next_log_file():
+    """Finds the next available pre-push-output-<n>.txt file."""
+    i = 1
+    while True:
+        log_name = os.path.join(SCRIPT_DIR, f"pre-push-output-{i}.txt")
+        if not os.path.exists(log_name):
+            return log_name
+        i += 1
+
+CURRENT_LOG_FILE = get_next_log_file()
+
 def log(msg):
+    """Prints to console and appends to the current numbered log file."""
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    formatted_msg = f"[{timestamp}] [DEBUG-LOG] {msg}"
     if DEBUG:
-        print(f"[DEBUG-LOG] {msg}")
+        print(formatted_msg)
+    
+    try:
+        with open(CURRENT_LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(formatted_msg + "\n")
+    except Exception as e:
+        print(f"Failed to write to log file: {e}")
 
 def trigger_restart_script():
     """
@@ -99,6 +120,7 @@ def get_remote_info(target_branch):
     except: return None, None
 
 def main():
+    log(f"Log initiated: {CURRENT_LOG_FILE}")
     log(f"Script started. Project Root: {PROJECT_ROOT}")
     
     # Check if Git is accessible
@@ -131,6 +153,7 @@ def main():
         pull_result = subprocess.run(["git", "pull", REMOTE, target_branch], cwd=PROJECT_ROOT, capture_output=True, text=True)
         
         if pull_result.returncode == 0:
+            log(f"Pull Output: {pull_result.stdout.strip()}")
             log("Pull successful. Dispatching restart script...")
             trigger_restart_script()
             # We exit immediately so the FastAPI server can return 'Success' to the user
