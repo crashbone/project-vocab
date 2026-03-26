@@ -10,6 +10,9 @@ export default defineConfig({
     vue(),
     vueJsx()
   ],
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia', '@fontsource/nunito']
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./main/src/frontend', import.meta.url))
@@ -42,6 +45,6 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
-    }
+    },
   }
 });
