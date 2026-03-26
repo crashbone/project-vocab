@@ -45,7 +45,7 @@ import { GoogleLoginHelper, LoginType } from '@/junk/google-login/GoogleLoginHel
 import { randomInt } from '@/junk/util/utils';
 
 const getBgImageContainerStyle = () => {
-    const imgName = `url('main/src/frontend/assets/img/${randomInt(1, 4)}.png')`;
+    const imgName = `url('main/src/frontend/assets/img/${randomInt(1, 4)}.jpg')`;
     return {
         backgroundImage: imgName
     }
