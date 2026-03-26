@@ -28,6 +28,7 @@ registerDirectives();
 
 app.use(createPinia())
 app.use(router)
+app.config.performance = false;
 
 
 app.mount('#app')
