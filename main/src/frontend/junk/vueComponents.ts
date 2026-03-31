@@ -7,10 +7,9 @@ import LiquidGlass from '@/NonPageComponents/LiquidGlass.vue'
 import Sparkles from '@/NonPageComponents/Sparkles.vue'
 import ButtonX from '@/NonPageComponents/ButtonX/vue.vue'
 import Tooltip from '@/NonPageComponents/Tooltip.vue'
+import type { App } from 'vue'
 
-export const register = () => {
-  // @ts-expect-error app
-  const app = window.app
+export const register = (app: App) => {
   app.component("PageLoading", PageLoading)
   app.component("PageWords", PageWords)
   app.component("PageDashboard", PageDashboard)

@@ -18,7 +18,7 @@ const app = createApp(App)
 // @ts-expect-error app
 window.app = app;
 
-registerVueComponents()
+registerVueComponents(app)
 const registerDirectives = () => {
   app.use(tap)
   app.directive('tooltip', tooltip)

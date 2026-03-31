@@ -40,9 +40,12 @@
 
 </template>
 <script setup lang="ts">
-import { publish } from '@/junk/EventBus';
+import { useAppStore } from '@/stores/appStore';
+import { toDashboard } from '@/junk/router';
 import { GoogleLoginHelper, LoginType } from '@/junk/google-login/GoogleLoginHelper';
 import { randomInt } from '@/junk/util/utils';
+
+const appStore = useAppStore()
 
 const getBgImageContainerStyle = () => {
     const imgName = `url('main/src/frontend/assets/img/${randomInt(1, 4)}.jpg')`;
@@ -58,8 +61,12 @@ const onLogin = async () => {
     await GoogleLoginHelper.instance.signIn(loginType, () => onLoggedIn())
 };
 
-const onLoggedIn = () => {
-    publish('userLoggedIn', {});
+const onLoggedIn = async () => {
+    const data = await appStore.loadInitialData()
+    if (data.logged_in) {
+        await appStore.loadPages()
+        toDashboard()
+    }
 }
 </script>
 <style src="./PageLanding.scss" lang="scss"></style>

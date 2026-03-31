@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref, type Ref } from 'vue'
-import { fetchPagesBuildDashboardModel } from '@/wordManagement/wordManagerVue'
-import { globalData } from '@/junk/globalData'
-import { fetchInitialData, type InitialData } from './junk/fetchInitialData';
+import { onMounted } from 'vue'
+import { useAppStore } from '@/stores/appStore'
 import { toDashboard, toLandingPage } from './junk/router';
-import { publish, subscribe } from './junk/EventBus';
 import { setWordColorsAsCSSVariables } from './Pages/PageWords/wordColors';
 import router from './router';
 
@@ -16,47 +13,22 @@ function addMobileClassIfMobile() {
     }
 }
 
-// Call the function
 addMobileClassIfMobile();
-const initialData: Ref<InitialData | undefined> = ref(undefined);
+
+const appStore = useAppStore()
 
 onMounted(async () => {
-    fetchInitialData().then((response: InitialData) => {
-        globalData.initialData = response;
-        publish('initialDataFetched', response);
-        initialData.value = response;
-        if (initialData.value.logged_in) {
-            onInitialDataShowsThatUserIsLoggedIn();
-        } else {
-            onNotLoggedIn();
+    const data = await appStore.loadInitialData()
+    if (data.logged_in) {
+        const pagesToBeDirectedToDashboard = ['login', 'loading']
+        if (pagesToBeDirectedToDashboard.includes(router.currentRoute.value.name as string)) {
+            toDashboard();
         }
-    }).catch(() => {
-        publish('initialDataFetched', { logged_in: false });
-        onNotLoggedIn();
-    })
-})
-
-const onInitialDataShowsThatUserIsLoggedIn = () => {
-    const pagesToBeDirectedToDashboard = ['login', 'loading']
-    if (pagesToBeDirectedToDashboard.includes(router.currentRoute.value.name as string)) {
-        toDashboard();
+        await appStore.loadPages()
+    } else {
+        toLandingPage();
     }
-    fetchPagesBuildDashboardModel()
-        .then(pagesResult => {
-            globalData.dashboardModel = pagesResult
-            publish('pagesFetched', pagesResult);
-        })
-}
-
-subscribe('userLoggedIn', () => {
-    onInitialDataShowsThatUserIsLoggedIn();
 })
-
-const onNotLoggedIn = () => {
-    toLandingPage();
-}
-
-
 </script>
 
 <template>

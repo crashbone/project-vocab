@@ -1,6 +1,6 @@
 <template>
     <div v-if="!page"></div>
-    <div else class="app-frame page words">
+    <div v-else class="app-frame page words">
         <!-- TOP BAR -->
         <PageWithWordsTopBar
                              :title="title"
@@ -75,8 +75,8 @@
 </template>
 
 <script setup lang="ts">
-import { type Ref, ref, onMounted, onBeforeUnmount } from "vue";
-import { globalData } from '@/junk/globalData'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { useAppStore } from '@/stores/appStore'
 import { PageModel } from "@/wordManagement/PageModel";
 import { TimeSpentHandler } from "@/junk/TimeSpentHandler";
 import { enumLength } from "@/junk/util/enumLength"
@@ -84,12 +84,12 @@ import { WordMode } from "@/wordManagement/WordMode"
 import { dynamicHeightSetUtil } from "@/junk/dynamicHeightSetUtil";
 import { toDashboard } from "@/junk/router";
 import { shuffle } from "@/junk/util/shuffle";
-import { subscribe } from "@/junk/EventBus";
-// import { routerToDashboard } from "@/junk/router";
 
 /* ==================
  * === INITIALIZE ===
  * ================== */
+
+const appStore = useAppStore()
 
 const title = ref('');
 const wordRefs = ref([]);
@@ -99,7 +99,7 @@ const props = defineProps({
 
 onMounted(() => {
     setTimeout(() => {
-        if (!globalData.dashboardModel) {
+        if (!appStore.dashboardModel) {
             // 5 seconds and still no data
             toDashboard();
             return;
@@ -111,32 +111,20 @@ onMounted(() => {
 onBeforeUnmount(() => {
     onStopRecording()
 })
-const grabPage = (): PageModel | undefined => {
-    if (!props.pageId || !globalData.dashboardModel) {
+
+const page = computed((): PageModel | undefined => {
+    if (!props.pageId || !appStore.dashboardModel) {
         return undefined;
     }
     const pageId = Number.parseInt(props.pageId) || 0;
-    return globalData.dashboardModel.pageModelMap![pageId]
-}
-const page: Ref<PageModel | undefined> = ref(grabPage());
-
-const onPageGrabbed = () => {
-    if (!page.value) {
-        return;
-    }
-    title.value = page.value.name
-}
-
-if (page.value) {
-    onPageGrabbed();
-}
-
-subscribe('pagesFetched', () => {
-    console.log('pagesFetched')
-    page.value = grabPage();
-    console.log(page.value);
-    onPageGrabbed();
+    return appStore.dashboardModel.pageModelMap![pageId]
 })
+
+watch(page, (newPage) => {
+    if (newPage) {
+        title.value = newPage.name
+    }
+}, { immediate: true })
 
 
 /* ===============

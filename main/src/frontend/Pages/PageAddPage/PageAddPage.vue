@@ -128,11 +128,14 @@ das Kind    Child`
 </template>
 <script setup lang="ts">
 import router from "@/router";
+import { useAppStore } from "@/stores/appStore";
 import { sendAddNewPageRequest, type PostRequestDataType } from "@/wordManagement/addNewPageRequest";
 import { nextTick, ref, watch, type Ref } from "vue";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 import { ViewMode } from "./ViewMode";
 import { WordManager } from "@/wordManagement/wordManager";
+
+const appStore = useAppStore()
 
 
 /* ==================
@@ -280,15 +283,11 @@ const onSaveClick = () => {
         description: "no-description-yet",
         words: wordsString
     } as PostRequestDataType;
-    sendAddNewPageRequest(requestData).then((res) => {
-        console.log("Request sent: Add New Page\nRedirecting to dashboard in 2 seconds...");
-        console.log(res);
-        setTimeout(() => {
+    sendAddNewPageRequest(requestData).then(async (res) => {
+        if (res.success) {
+            await appStore.loadPages()
             router.push({ name: 'dashboard' })
-            setTimeout(() => {
-                window.location.reload();
-            }, 250)
-        }, 2000)
+        }
     })
 }
 

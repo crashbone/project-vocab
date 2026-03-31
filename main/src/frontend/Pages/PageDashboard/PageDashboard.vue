@@ -31,7 +31,7 @@
                 <div class="welcome-right">
                     <div class="welcome-right-inner-container">
                         <div class="welcome-subtitle">Hey, welcome back!</div>
-                        <div class="welcome-text">It’s been 25 days since you practiced!</div>
+                        <div class="welcome-text">It's been 25 days since you practiced!</div>
                     </div>
 
                 </div>
@@ -49,7 +49,7 @@
                         <template v-if="groupIndex === 2">{{ model.restTitle.toUpperCase() }}</template>
                     </div>
                     <div class="word-page-buttons-container">
-                        <template v-for="(pageModel, index) in pageModelIdsGrouped.map((pageModelId: number) => model.pageModelMap[pageModelId])"
+                        <template v-for="(pageModel, index) in pageModelIdsGrouped.map((pageModelId: number) => model!.pageModelMap[pageModelId])"
                                   :key="index">
                             <ButtonX @tap="pageClick(pageModel.id)"
                                      :index="groupIndex * model.AMOUNT_OF_PAGES_GROUPED + index"
@@ -74,28 +74,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref } from "vue";
+import { computed } from "vue";
 import { useRouter } from 'vue-router'
+import { useAppStore } from '@/stores/appStore'
 import { getDateTitle } from '@/junk/util/getDateTitle';
 import { sendDeletePageRequest } from '@/wordManagement/deletePageRequest';
 import type { InitialDataWithUser } from '@/junk/fetchInitialData';
-import { DashboardModel } from '@/wordManagement/DashboardModel';
-import { subscribe } from '@/junk/EventBus';
-import { globalData } from '@/junk/globalData';
 import { sendTriggerGitUpdateRequest } from "@/junk/admin/triggerGitUpdateRequest";
 
-// MOVE IT TO SOMEWHERE GLOBAL
-const initialData = ref<InitialDataWithUser | undefined>(undefined);
+const appStore = useAppStore()
 
-subscribe('initialDataFetched', (id: InitialData) => {
-    if (!id.logged_in) {
-        toLandingPage();
-        return;
-    }
-
-    initialData.value = (id as InitialDataWithUser);
+const initialData = computed(() => {
+    const data = appStore.initialData
+    return data?.logged_in && data.user ? data as InitialDataWithUser : undefined
 })
-
+const model = computed(() => appStore.dashboardModel)
 
 const router = useRouter()
 const pageClick = (pageId: number) => {
@@ -106,15 +99,10 @@ const newPageClick = () => {
 }
 
 const onDeleteClick = (pageId: number) => {
-    sendDeletePageRequest({ id: pageId }).then((res) => {
-        console.log("Request sent: Add New Page\nRedirecting to dashboard in 2 seconds...");
-        console.log(res);
-        setTimeout(() => {
-            router.push({ name: 'dashboard' })
-            setTimeout(() => {
-                window.location.reload();
-            }, 250)
-        }, 2000)
+    sendDeletePageRequest({ id: pageId }).then(async (res) => {
+        if (res.success) {
+            await appStore.loadPages()
+        }
     })
 }
 
@@ -123,14 +111,5 @@ const onAdminClick = () => {
         console.log(res);
     })
 }
-
-const model: Ref<DashboardModel | undefined> = ref(globalData.dashboardModel);
-subscribe('pagesFetched', (dashboardModel: DashboardModel) => {
-    model.value = dashboardModel
-})
-
-
-
-
 </script>
 <style src="./PageDashboard.scss" lang="scss"></style>

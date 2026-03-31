@@ -36,3 +36,6 @@ __pycache__/
 
 # Pretend server
 pretendServer
+
+.agents
+.claude
