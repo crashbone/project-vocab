@@ -1,7 +1,7 @@
 <template>
     <div class="top-bar">
         <div class="top-bar-inner-container">
-            <div class="left pointer" @click="toDashboard">
+            <div class="left" :class="{ pointer: !backDisabled, 'disabled-back': backDisabled }" @click="handleBack">
                 <SvgX url="/main/src/frontend/assets/svg/left-arrow.svg" :width="24" :height="24" />
             </div>
             <div class="middle">
@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { toDashboard } from '@/junk/router';
 import router from '@/router';
-import { nextTick, ref, useTemplateRef } from 'vue';
+import { nextTick, ref, useTemplateRef, type PropType } from 'vue';
 
 const props = defineProps({
     title: {
@@ -42,9 +42,26 @@ const props = defineProps({
     titleAdjustable: {
         type: Boolean,
         default: false
-    }
+    },
+    backDisabled: {
+        type: Boolean,
+        default: false
+    },
+    backHandler: {
+        type: Function as PropType<() => void>,
+        default: undefined,
+    },
 })
 const emit = defineEmits(['update:title'])
+
+const handleBack = () => {
+    if (props.backDisabled) return
+    if (props.backHandler) {
+        props.backHandler()
+    } else {
+        toDashboard()
+    }
+}
 
 
 const editTitleMode = ref(false)

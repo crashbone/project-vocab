@@ -52,6 +52,9 @@ body {
   box-sizing: border-box;
   margin: unset;
   flex-shrink: 0;
+}
+
+html:not(:has(.portfolio)) * {
   user-select: none;
 }
 

@@ -27,6 +27,13 @@ html:not(.mobile) {
     z-index: 2;
   }
 
+  .bottom-bar-button-top {
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .top-bar {
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   }

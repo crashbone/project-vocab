@@ -2,12 +2,14 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { register as registerVueComponents } from '@/junk/vueComponents'
 import '@/junk/imports'
+import '@/junk/scss/tailwind.css'
 import '@/wordManagement/wordManager'
 import router from './router'
 import App from './App.vue'
 import tooltip from '@/directives/tooltip'
 import contextMenu from '@/directives/contextMenu'
 import tap from '@/directives/tap'
+
 
 
 

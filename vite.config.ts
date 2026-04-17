@@ -4,11 +4,13 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 import { getSSL, getFrontendIP, getBackendIP, OS, detectOS } from './config/vite/OS';
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [
     vue(),
-    vueJsx()
+    vueJsx(),
+    tailwindcss(),
   ],
   optimizeDeps: {
     include: ['vue', 'vue-router', 'pinia', '@fontsource/nunito']

@@ -69,46 +69,7 @@ das Kind    Child`
         </div>
 
         <div class="bottom-bar">
-            <LiquidGlass class="bottom-bar-liquid-glass pointer" :class="`block${index1 + 1}`" v-for="(objList, index1) in [
-                // LIST 1
-                [
-                    // {
-                    //     icon: 'export',
-                    //     name: 'Import',
-                    //     style: 'transform: translateY(1px)',
-                    //     size: 18,
-                    // },
-                ],
-                // LIST 2
-                [
-                    {
-                        icon: 'export',
-                        name: 'Standard View',
-                        style: 'transform: translateY(1px)',
-                        size: 18,
-                        click: () => onViewModeChange(ViewMode.STANDARD),
-                        active: () => viewMode === ViewMode.STANDARD
-                    },
-                    {
-                        icon: 'export',
-                        name: 'Raw View',
-                        style: 'transform: translateY(1px)',
-                        size: 18,
-                        click: () => onViewModeChange(ViewMode.RAW),
-                        active: () => viewMode === ViewMode.RAW
-                    }
-                ],
-                // LIST 3
-                [
-                    {
-                        icon: 'export',
-                        name: 'Save',
-                        style: 'transform: translateY(1px)',
-                        size: 18,
-                        click: onSaveClick,
-                    }
-                ],
-            ] as BottomBarObj[][]" :key="index1">
+            <LiquidGlass class="bottom-bar-liquid-glass pointer" :class="`block${index1 + 1}`" v-for="(objList, index1) in bottomBarButtons" :key="index1">
                 <div class="liquid-glass-card-slot-content">
                     <div class="bottom-bar-button" @click="obj.click" v-for="(obj, index2) in objList" :key="index2">
                         <transition name="modeSwitch-scale">
@@ -130,7 +91,7 @@ das Kind    Child`
 import router from "@/router";
 import { useAppStore } from "@/stores/appStore";
 import { sendAddNewPageRequest, type PostRequestDataType } from "@/wordManagement/addNewPageRequest";
-import { nextTick, ref, watch, type Ref } from "vue";
+import { computed, nextTick, ref, watch, type Ref } from "vue";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 import { ViewMode } from "./ViewMode";
 import { WordManager } from "@/wordManagement/wordManager";
@@ -162,6 +123,39 @@ const wordInputs1: Ref<HTMLElement[]> = ref([]);
 const wordInputs2: Ref<HTMLElement[]> = ref([]);
 const rawModeString = ref('');
 const viewMode = ref(ViewMode.STANDARD)
+
+const bottomBarButtons = computed((): BottomBarObj[][] => {
+    return [
+        [],  // empty block1 (no cancel in addPage)
+        [
+            {
+                icon: 'export',
+                name: 'Standard View',
+                style: 'transform: translateY(-3px)',
+                size: 18,
+                click: () => onViewModeChange(ViewMode.STANDARD),
+                active: () => viewMode.value === ViewMode.STANDARD
+            },
+            {
+                icon: 'export',
+                name: 'Raw View',
+                style: 'transform: translateY(-3px)',
+                size: 18,
+                click: () => onViewModeChange(ViewMode.RAW),
+                active: () => viewMode.value === ViewMode.RAW
+            }
+        ],
+        [
+            {
+                icon: 'export',
+                name: 'Save',
+                style: 'transform: translateY(-3px)',
+                size: 18,
+                click: onSaveClick,
+            }
+        ],
+    ]
+})
 
 
 /* ====================
@@ -277,6 +271,7 @@ const onSaveClick = () => {
     } else if (viewMode.value === ViewMode.STANDARD) {
         wordsString = getRawModeTextFromInputs();
     }
+
     console.log(wordObjects.value);
     const requestData = {
         name: title.value,

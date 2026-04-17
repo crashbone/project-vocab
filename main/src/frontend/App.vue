@@ -18,6 +18,11 @@ addMobileClassIfMobile();
 const appStore = useAppStore()
 
 onMounted(async () => {
+    await router.isReady();
+    const pagesToBeIgnored = ['portfolio'];
+    if (pagesToBeIgnored.includes(router.currentRoute.value.name as string)) {
+        return;
+    }
     const data = await appStore.loadInitialData()
     if (data.logged_in) {
         const pagesToBeDirectedToDashboard = ['login', 'loading']
@@ -33,4 +38,6 @@ onMounted(async () => {
 
 <template>
     <router-view />
+    <ContextMenu />
+    <ConfirmationPopup />
 </template>
