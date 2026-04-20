@@ -52,7 +52,7 @@
                         </a>
                     </div>
                 </div>
-                <a href="https://www.youtube.com/watch?v=_XLMzFX7dD4" target="_blank" rel="noopener"
+                <a href="https://www.youtube.com/watch?v=6aSM9uyd7Q4" target="_blank" rel="noopener"
                    class="group w-64 h-64 md:w-96 md:h-96 shrink-0 relative block rounded-3xl shadow-xl rotate-2 overflow-hidden">
                     <img
                          src="/main/src/frontend/assets/img/portfolio/okan.jpg"
