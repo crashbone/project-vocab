@@ -33,7 +33,7 @@
                         <span class="text-gray-600">6+ years of production experience</span>
                     </h1>
                     <p class="text-lg md:text-xl text-gray-600 max-w-2xl leading-relaxed">
-                        6+ years building production web applications.
+                        6+ years building production web applications with Vue.
                         Also comfortable with other frameworks like Nuxt, React, Next, and Angular. Shipped
                         revenue-critical
                         features on browser games with 600,000+ daily players at Twin Harbour Interactive, each driving
