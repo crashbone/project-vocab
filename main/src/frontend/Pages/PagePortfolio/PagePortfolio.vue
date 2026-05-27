@@ -25,7 +25,7 @@
                     <div
                          class="inline-flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-2 rounded-full">
                         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        <span class="text-sm font-medium text-green-800">Available for new projects, April 2026</span>
+                        <span class="text-sm font-medium text-green-800">Available for new projects, June 2026</span>
                     </div>
                     <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">
                         Okan<br />
@@ -99,7 +99,7 @@
                         <p class="text-gray-500 mt-1">Part of Stillfront Group</p>
                     </div>
                     <p class="text-gray-700 leading-relaxed md:text-lg max-w-4xl">
-                        5 years of frontend development on browser games serving 600,000+ daily players across the
+                        5 years of frontend development on browser games serving 90M+ players / 600,000+ DAU across the
                         portfolio. Contributed to core gameplay systems including Heroes, Battle Pass, and Inventory,
                         each driving visible revenue uplift. All features were built on the in-house game engine
                         shared across titles, allowing gameplay systems to be deployed across multiple games. Worked
