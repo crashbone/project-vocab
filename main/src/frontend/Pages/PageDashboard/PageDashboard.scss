@@ -113,47 +113,55 @@ html:not(.mobile) {
     font-size: 13px;
     font-weight: 500;
 
-    .top-left,
-    .bottom-left,
-    .top-right,
-    .bottom-right {
-      position: absolute;
-    }
-
     .button-content {
       position: relative;
       width: 100%;
       height: 100%;
+      padding: 9px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    // Sol hucreler tasarsa "..." ile kirpilir; sag hucreler hic kirpilmaz.
+    // ust taraftaki `* { flex-shrink: 0 }` yuzunden shrink acikca geri veriliyor.
+    .top-left,
+    .bottom-left {
+      flex-shrink: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .top-right,
+    .bottom-right {
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .bubble_effect {
       left: 5px;
+      right: 5px;
       top: 4px;
-      width: 349px;
       height: 24px;
     }
 
     .top-left {
-      top: 10px;
-      left: 24px;
       font-size: 16px;
       font-weight: 700;
     }
 
-    .bottom-left {
-      left: 24px;
-      bottom: 9px;
-    }
-
     .top-right {
-      top: 11px;
-      right: 24px;
       font-weight: 700;
-    }
-
-    .bottom-right {
-      bottom: 9px;
-      right: 24px;
     }
   }
 

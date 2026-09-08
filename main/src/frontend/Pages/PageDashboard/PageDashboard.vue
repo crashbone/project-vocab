@@ -56,10 +56,14 @@
                                      v-context-menu="[
                                         { name: 'Delete', click: () => onDeleteClick(pageModel.id) },
                                     ]">
-                                <div class="top-left">{{ pageModel.name }}</div>
-                                <div class="bottom-left"> {{ pageModel.words.slice(0, 3).join(', ') }}</div>
-                                <div class="top-right">{{ pageModel.words.length }} Words</div>
-                                <div class="bottom-right">{{ getDateTitle(new Date(pageModel.lastEntryAt)) }}</div>
+                                <div class="card-row">
+                                    <div class="top-left">{{ pageModel.name }}</div>
+                                    <div class="top-right">{{ pageModel.words.length }} Words</div>
+                                </div>
+                                <div class="card-row">
+                                    <div class="bottom-left"> {{ pageModel.words.slice(0, 3).join(', ') }}</div>
+                                    <div class="bottom-right">{{ getDateTitle(new Date(pageModel.lastEntryAt)) }}</div>
+                                </div>
                             </ButtonX>
                         </template>
                     </div>

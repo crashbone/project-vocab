@@ -6,7 +6,12 @@
 
     .bottom-bar-button {
       height: 40px;
-      max-width: 55px; // width to align items, max 55, so buttons with long text doesn't take too much space
+    }
+
+    // Uzun etiketler bari sismesin diye kondu, ama edit barinda 'Standard View'
+    // 55px'e sigmayip komsusunun ustune tasiyordu -- edit bari haric tutuldu.
+    &:not(.edit-bottom-bar) .bottom-bar-button {
+      max-width: 55px;
     }
 
     .liquid-glass-card-slot-content {
@@ -48,6 +53,17 @@
     width: auto !important;
     --border-radius: 32px;
 
+    // Yukaridaki .bottom-bar override'lari (height: 40px + slot padding'i) bu bara
+    // uymuyor: ikon 18px + etiket 19px, 40px'in ic kutusuna sigmayip camin disina
+    // tasiyordu. PageAddPage'in barinda bu kurallar yok, yuksekligi icerik belirliyor.
+    .bottom-bar-button {
+      height: auto;
+    }
+
+    .liquid-glass-card-slot-content {
+      padding: 0;
+    }
+
     .edit-bar-cancel,
     .edit-bar-save {
       .liquid-glass-card-slot-content {
@@ -79,7 +95,12 @@
     }
   }
 
-  .row {
+  // `.row` yalnizca edit modunda var. `&.edit-mode-active` ile ozgullugu bir sinif
+  // artiriyoruz: aksi halde PageWithWords.scss'teki
+  // `.page:not(.dashboard:not(.landing)) .button { font-size: 20px }` kurali ayni
+  // ozgullukte (0,4,0) oldugu icin kazanan, yuklenme sirasina kaliyordu -- AddPage'de
+  // 16px, burada 20px cikiyordu.
+  &.edit-mode-active .row {
     display: flex;
     gap: 10px;
 

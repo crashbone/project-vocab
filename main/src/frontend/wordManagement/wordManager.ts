@@ -18,6 +18,14 @@ export class WordManager {
     return WordManager._instance;
   }
 
+  // setupWords'un tersi: modelleri tekrar ham metne cevirir (' | ' ayraci, satirlar '\n').
+  formatWordsForExport(words: WordModel[]): string {
+    return words.map(w => {
+      const left = w.hasArtikel ? `${w.artikel} ${w.word}` : w.word
+      return `${left} | ${w.meaning}`
+    }).join('\n')
+  }
+
   setupWords(allWords: string): WordModel[] {
     //whole string input splitted into array using "\n"
     const words: WordModel[] = [];

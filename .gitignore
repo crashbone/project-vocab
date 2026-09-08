@@ -37,5 +37,10 @@ __pycache__/
 # Pretend server
 pretendServer
 
-.agents
-.claude
+.claude/settings.local.json
+
+# Mem0 session memory (local data)
+mem0/
+
+# Serena MCP (machine-specific)
+.serena/

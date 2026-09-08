@@ -7,7 +7,8 @@
                              :titleAdjustable="editMode ? true : !selectionMode"
                              :backDisabled="selectionMode"
                              :backHandler="editMode ? exitEditMode : undefined"
-                             @update:title="editMode ? (editTitle = $event) : (title = $event)">
+                             @update:title="editMode ? (editTitle = $event) : (title = $event)"
+                             @commit:title="onTitleCommit">
             <template v-if="editMode && editViewMode === ViewMode.RAW" #right>
                 <SvgX v-tooltip="{
                     title: 'How to use Raw View',
@@ -26,9 +27,8 @@ das Kind    Child`
             </template>
             <template v-else #right>
                 <template v-if="!selectionMode && !editMode">
-                    <!-- TEMPORARILY DISABLED -->
-                    <!-- <SvgX class="pointer" url="/main/src/frontend/assets/svg/pencil.svg" :width="22" :height="22"
-                          @click="enterEditMode" /> -->
+                    <SvgX class="pointer" url="/main/src/frontend/assets/svg/pencil.svg" :width="22" :height="22"
+                          @click="enterEditMode" />
                     <SvgX class="pointer" url="/main/src/frontend/assets/svg/check.svg" :width="28" :height="28"
                           @click="enterSelectionMode" />
                     <div class="pointer profile-icon">C</div>
@@ -40,7 +40,6 @@ das Kind    Child`
         <div v-if="!editMode" class="page-content-container-1">
             <template v-for="(word, index) in page!.wordModels" :key="index">
                 <ButtonX @click="wordClick(index)"
-                         @dblclick="wordDblClick(index)"
                          :shining_border_animation="word.marker"
                          class="size80px" :class="[
                              `wordMode${word.mode}`,
@@ -223,6 +222,7 @@ import { toDashboard } from "@/junk/router";
 import { shuffle } from "@/junk/util/shuffle";
 import type { WordModel } from "@/wordManagement/WordModel";
 import { WordManager } from "@/wordManagement/wordManager";
+import { sendUpdatePageRequest } from "@/wordManagement/updatePageRequest";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 
 enum ViewMode {
@@ -238,6 +238,12 @@ const appStore = useAppStore()
 
 const title = ref('');
 const wordRefs = ref([]);
+// Kendi cift tik esigimiz: native @dblclick'i isletim sistemi (~500ms) belirliyordu
+// ve degistirilemiyordu. tap.ts:10-11'deki esik sabiti kalibina uygun.
+const DOUBLE_CLICK_MS = 230;
+// Tek tik bu sure kadar bekletilir: cift tik ihtimali varken mod ilerletilmesin.
+let singleClickTimer: ReturnType<typeof setTimeout> | undefined;
+let pendingClickIndex = -1;
 const editMode = ref(false);
 const props = defineProps({
     pageId: String, // it has to be string, because url param
@@ -255,6 +261,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     onStopRecording()
+    clearTimeout(singleClickTimer)
 })
 
 const page = computed((): PageModel | undefined => {
@@ -388,8 +395,85 @@ const onEditWordObjectsChanged = () => {
 
 watch(editWordObjects, () => onEditWordObjectsChanged(), { deep: true })
 
-const onEditSaveClick = () => {
-    // TODO: not implemented — send edit request to backend
+// Edit moduna girmeden, ust bardaki kalemle baslik degistirildiginde kaydeder.
+// Kelimeler mevcut modellerden yeniden uretilir (export ile ayni serilestirme).
+const onTitleCommit = async () => {
+    if (editMode.value) return
+    if (!page.value) return
+
+    const newTitle = title.value.trim()
+    if (newTitle === page.value.name) return
+
+    if (newTitle === '') {
+        title.value = page.value.name
+        showConfirmationPopup({
+            title: 'Title cannot be empty.',
+            buttons: [{ name: 'OK', click: closeConfirmationPopup }],
+        })
+        return
+    }
+
+    const previousTitle = page.value.name
+    const res = await sendUpdatePageRequest({
+        id: page.value.id,
+        name: newTitle,
+        description: page.value.description,
+        words: WordManager.instance.formatWordsForExport(page.value.wordModels),
+    })
+
+    if (!res.success) {
+        title.value = previousTitle
+        showConfirmationPopup({
+            title: `Could not save title: ${res.error ?? 'unknown error'}`,
+            buttons: [{ name: 'OK', click: closeConfirmationPopup }],
+        })
+        return
+    }
+
+    await appStore.loadPages()
+}
+
+const editSaving = ref(false)
+
+const onEditSaveClick = async () => {
+    if (editSaving.value) return
+    if (!page.value) return
+
+    if (editTitle.value.trim() === '') {
+        showConfirmationPopup({
+            title: 'Title cannot be empty.',
+            buttons: [{ name: 'OK', click: closeConfirmationPopup }],
+        })
+        return
+    }
+
+    // Ekranda hangisi acikssa dogru kaynak odur -- onEditViewModeChange ile ayni secim.
+    const wordsString = editViewMode.value === ViewMode.RAW
+        ? editRawModeString.value
+        : getEditRawModeTextFromInputs()
+
+    // Standard modda son satir her zaman bos bir ekleme satiridir.
+    const words = wordsString.replace(/\n+$/, '')
+
+    editSaving.value = true
+    const res = await sendUpdatePageRequest({
+        id: page.value.id,
+        name: editTitle.value,
+        description: page.value.description,
+        words,
+    })
+    editSaving.value = false
+
+    if (!res.success) {
+        // Edit mode acik kalir, kullanici yazdigini kaybetmez.
+        showConfirmationPopup({
+            title: `Could not save: ${res.error ?? 'unknown error'}`,
+            buttons: [{ name: 'OK', click: closeConfirmationPopup }],
+        })
+        return
+    }
+
+    await appStore.loadPages()
     exitEditMode()
 }
 
@@ -421,13 +505,6 @@ const openExportMenu = (event: Event) => {
     })
 }
 
-const formatWordsForExport = (words: WordModel[]): string => {
-    return words.map(w => {
-        const left = w.hasArtikel ? `${w.artikel} ${w.word}` : w.word
-        return `${left} | ${w.meaning}`
-    }).join('\n')
-}
-
 const exportWords = (type: 'marked' | 'selected' | 'all') => {
     if (!page.value) return
     let words: WordModel[]
@@ -438,7 +515,7 @@ const exportWords = (type: 'marked' | 'selected' | 'all') => {
     } else {
         words = page.value.wordModels
     }
-    const text = formatWordsForExport(words)
+    const text = WordManager.instance.formatWordsForExport(words)
 
     const copyLabel = 'Copy'
     showConfirmationPopup({
@@ -480,7 +557,33 @@ const wordClick = async (i: number) => {
         toggleSelection(i)
         return
     }
+
+    // Ayni kelimeye esik icinde ikinci tik: bekleyen tek tik iptal, sadece marker degisir.
+    if (singleClickTimer !== undefined && pendingClickIndex === i) {
+        clearTimeout(singleClickTimer);
+        singleClickTimer = undefined;
+        pendingClickIndex = -1;
+        wordDblClick(i);
+        return;
+    }
+
+    // Baska bir kelimeye gecildiyse bekleyen tik hemen uygulanir, kaybolmaz.
+    if (singleClickTimer !== undefined) {
+        clearTimeout(singleClickTimer);
+        applySingleClick(pendingClickIndex);
+    }
+
+    pendingClickIndex = i;
+    singleClickTimer = setTimeout(() => {
+        singleClickTimer = undefined;
+        pendingClickIndex = -1;
+        applySingleClick(i);
+    }, DOUBLE_CLICK_MS);
+}
+
+const applySingleClick = (i: number) => {
     const el = wordRefs.value[i] as HTMLElement;
+    if (!el) return;
     dynamicHeightSetUtil(el, () => { nextMode(i) });
 }
 
