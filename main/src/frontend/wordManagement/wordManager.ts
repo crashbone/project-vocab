@@ -21,9 +21,10 @@ export class WordManager {
   // setupWords'un tersi: modelleri tekrar ham metne cevirir (' | ' ayraci, satirlar '\n').
   formatWordsForExport(words: WordModel[]): string {
     return words.map(w => {
-      const left = w.hasArtikel ? `${w.artikel} ${w.word}` : w.word
-      return `${left} | ${w.meaning}`
-    }).join('\n')
+      const left = (w.hasArtikel ? `${w.artikel} ${w.word}` : w.word).trim()
+      const right = (w.meaning ?? '').trim()
+      return right === '' ? left : `${left} | ${right}`
+    }).filter(line => line !== '').join('\n')
   }
 
   setupWords(allWords: string): WordModel[] {
@@ -34,6 +35,10 @@ export class WordManager {
     allWordsArray.forEach(line => {
       const lineArray = splitByDelimiters(line, this.delimiters)
       if (lineArray.length === 1 && line.length < 3) {
+        return words;
+      }
+      // Sadece ayractan ibaret satirlar (' | ') bos kelime uretmesin.
+      if (lineArray.every(part => part.trim() === '')) {
         return words;
       }
       let wordModel: WordModel;

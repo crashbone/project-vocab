@@ -222,6 +222,7 @@ import { toDashboard } from "@/junk/router";
 import { shuffle } from "@/junk/util/shuffle";
 import type { WordModel } from "@/wordManagement/WordModel";
 import { WordManager } from "@/wordManagement/wordManager";
+import { applyMarkers, saveMarkers } from "@/wordManagement/markerStore";
 import { sendUpdatePageRequest } from "@/wordManagement/updatePageRequest";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 
@@ -275,6 +276,8 @@ const page = computed((): PageModel | undefined => {
 watch(page, (newPage) => {
     if (newPage) {
         title.value = newPage.name
+        // Sayfa (yeniden) yuklendiginde kayitli highlight'lar kelime eslesmesiyle geri konur.
+        applyMarkers(newPage.id, newPage.wordModels)
     }
 }, { immediate: true })
 
@@ -370,7 +373,13 @@ const onEditViewModeChange = (vm: ViewMode) => {
 }
 
 const getEditRawModeTextFromInputs = () => {
-    return editWordObjects.value.map(wObj => [wObj.w1, wObj.w2].join(' | ')).join('\n')
+    // Bos satirlar (ozellikle listenin sonundaki bos giris satiri) raw metne yazilmaz,
+    // yoksa geri donuste ' | ' satiri bos bir kelime olarak ayrisir.
+    return editWordObjects.value
+        .map(wObj => ({ w1: wObj.w1.trim(), w2: wObj.w2.trim() }))
+        .filter(wObj => wObj.w1 !== '' || wObj.w2 !== '')
+        .map(wObj => (wObj.w2 === '' ? wObj.w1 : `${wObj.w1} | ${wObj.w2}`))
+        .join('\n')
 }
 
 const onEditWordObjectsChanged = () => {
@@ -589,7 +598,9 @@ const applySingleClick = (i: number) => {
 
 const wordDblClick = (i: number) => {
     if (selectionMode.value) return
-    page.value?.wordModels[i]?.setMarker(!page.value?.wordModels[i].marker);
+    if (!page.value) return
+    page.value.wordModels[i]?.setMarker(!page.value.wordModels[i].marker);
+    saveMarkers(page.value.id, page.value.wordModels)
 }
 
 const nextMode = (i: number) => {
