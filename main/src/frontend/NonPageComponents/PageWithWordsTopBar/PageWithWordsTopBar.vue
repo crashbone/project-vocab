@@ -52,7 +52,7 @@ const props = defineProps({
         default: undefined,
     },
 })
-const emit = defineEmits(['update:title'])
+const emit = defineEmits(['update:title', 'commit:title'])
 
 const handleBack = () => {
     if (props.backDisabled) return
@@ -78,6 +78,7 @@ const onTitleClick = () => {
 }
 const onTitleFocusOut = () => {
     editTitleMode.value = false
+    emit('commit:title')
 }
 
 </script>
