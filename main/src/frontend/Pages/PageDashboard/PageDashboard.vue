@@ -85,6 +85,7 @@ import { getDateTitle } from '@/junk/util/getDateTitle';
 import { sendDeletePageRequest } from '@/wordManagement/deletePageRequest';
 import type { InitialDataWithUser } from '@/junk/fetchInitialData';
 import { sendTriggerGitUpdateRequest } from "@/junk/admin/triggerGitUpdateRequest";
+import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponents/ConfirmationPopup/confirmationPopup'
 
 const appStore = useAppStore()
 
@@ -111,8 +112,19 @@ const onDeleteClick = (pageId: number) => {
 }
 
 const onAdminClick = () => {
-    sendTriggerGitUpdateRequest().then((res) => {
-        console.log(res);
+    showConfirmationPopup({
+        title: 'Git update tetiklensin mi?',
+        buttons: [
+            { name: 'Cancel', click: closeConfirmationPopup },
+            {
+                name: 'OK', click: () => {
+                    closeConfirmationPopup()
+                    sendTriggerGitUpdateRequest().then((res) => {
+                        console.log(res);
+                    })
+                }
+            },
+        ],
     })
 }
 </script>
