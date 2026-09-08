@@ -31,7 +31,7 @@
                 <div class="welcome-right">
                     <div class="welcome-right-inner-container">
                         <div class="welcome-subtitle">Hey, welcome back!</div>
-                        <div class="welcome-text">It's been 25 days since you practiced!</div>
+                        <div class="welcome-text">{{ welcomeText }}</div>
                     </div>
 
                 </div>
@@ -82,6 +82,7 @@ import { computed } from "vue";
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
 import { getDateTitle } from '@/junk/util/getDateTitle';
+import { getPracticeGapText } from '@/junk/util/getPracticeGapText';
 import { sendDeletePageRequest } from '@/wordManagement/deletePageRequest';
 import type { InitialDataWithUser } from '@/junk/fetchInitialData';
 import { sendTriggerGitUpdateRequest } from "@/junk/admin/triggerGitUpdateRequest";
@@ -94,6 +95,15 @@ const initialData = computed(() => {
     return data?.logged_in && data.user ? data as InitialDataWithUser : undefined
 })
 const model = computed(() => appStore.dashboardModel)
+
+// En son calisilan sayfanin tarihine gore karsilama satiri.
+const welcomeText = computed(() => {
+    const dashboard = model.value
+    const lastEntryAt = dashboard
+        ? Math.max(0, ...Object.values(dashboard.pageModelMap ?? {}).map(p => p.lastEntryAt))
+        : 0
+    return getPracticeGapText(lastEntryAt > 0 ? new Date(lastEntryAt) : undefined)
+})
 
 const router = useRouter()
 const pageClick = (pageId: number) => {
