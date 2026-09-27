@@ -1,3 +1,4 @@
+import type { PageType } from "./PageType";
 // addPageRequest.ts
 // A helper for sending POST requests similar to the pattern used in GoogleLoginHelper
 
@@ -5,6 +6,7 @@ export type PostRequestDataType = {
   name: string;
   description: string
   words: string;
+  type?: PageType;
 }
 
 export interface PostRequestResponse {

@@ -23,8 +23,14 @@ CREATE TABLE "pages" (
     time_spent_seconds BIGINT DEFAULT 0,
 
     -- Timestamp for the last time the entry was modified or saved
-    last_entry_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    last_entry_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Page kind: 'page' (word list) or 'multiple_choice' (admin-only quiz)
+    type VARCHAR(32) NOT NULL DEFAULT 'page'
 );
+
+-- Existing databases (added 2026-09-27):
+-- ALTER TABLE pages ADD COLUMN type VARCHAR(32) NOT NULL DEFAULT 'page';
 
 -- Optional: Create an index on user_id for fast lookup of a user's pages
 CREATE INDEX idx_pages_user_id ON pages (user_id);

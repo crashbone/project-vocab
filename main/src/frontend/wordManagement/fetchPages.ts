@@ -1,3 +1,5 @@
+import type { PageType } from "./PageType";
+
 export interface PageJSON {
   id: number;
   name: string;
@@ -5,6 +7,7 @@ export interface PageJSON {
   words: string;
   time_spent_seconds: number
   last_entry_at: string // ISO 8601
+  type: PageType
 }
 
 export const fetchPages = (): Promise<PageJSON[]> => {

@@ -3,7 +3,7 @@
         <!-- TODO: This is written for testing purposes until making sure back-end is working
             FIX IT!
         -->
-        <div class="admin-bar" style="position: absolute; top: 60px; width: 100%; padding: 0 2px" v-if="initialData && initialData.user.email === 'offcrashbone@gmail.com'">
+        <div class="admin-bar" style="position: absolute; top: 60px; width: 100%; padding: 0 2px" v-if="isAdmin">
             <button @click="onAdminClick">ADMIN</button>
         </div>
 
@@ -58,7 +58,7 @@
                                     ]">
                                 <div class="card-row">
                                     <div class="top-left">{{ pageModel.name }}</div>
-                                    <div class="top-right">{{ pageModel.words.length }} Words</div>
+                                    <div class="top-right">{{ pageModel.words.length }} {{ pageModel.type === PageType.MULTIPLE_CHOICE ? 'Questions' : 'Words' }}</div>
                                 </div>
                                 <div class="card-row">
                                     <div class="bottom-left"> {{ pageModel.words.slice(0, 3).join(', ') }}</div>
@@ -70,7 +70,7 @@
                 </div>
             </template>
             <div v-else>initialData: {{ initialData }}</div>
-            <div @click="newPageClick" class="add-page-button">+</div>
+            <div @click="onAddClick" class="add-page-button">+</div>
 
         </div>
 
@@ -87,6 +87,8 @@ import { sendDeletePageRequest } from '@/wordManagement/deletePageRequest';
 import type { InitialDataWithUser } from '@/junk/fetchInitialData';
 import { sendTriggerGitUpdateRequest } from "@/junk/admin/triggerGitUpdateRequest";
 import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponents/ConfirmationPopup/confirmationPopup'
+import { showContextMenu } from '@/NonPageComponents/ContextMenu/contextMenu'
+import { PageType } from '@/wordManagement/PageType';
 
 const appStore = useAppStore()
 
@@ -95,6 +97,8 @@ const initialData = computed(() => {
     return data?.logged_in && data.user ? data as InitialDataWithUser : undefined
 })
 const model = computed(() => appStore.dashboardModel)
+// TODO: backend'deki roles.py'den gelmeli; simdilik eski admin-bar kontrolu.
+const isAdmin = computed(() => initialData.value?.user.email === 'offcrashbone@gmail.com')
 
 // En son calisilan sayfanin tarihine gore karsilama satiri.
 const welcomeText = computed(() => {
@@ -107,10 +111,27 @@ const welcomeText = computed(() => {
 
 const router = useRouter()
 const pageClick = (pageId: number) => {
-    router.push({ name: 'page', params: { pageId } })
+    const isMultipleChoice = model.value?.pageModelMap[pageId]?.type === PageType.MULTIPLE_CHOICE
+    router.push({ name: isMultipleChoice ? 'multiple_choice' : 'page', params: { pageId } })
 }
-const newPageClick = () => {
-    router.push({ name: 'add_page' })
+const newPageClick = (type: PageType = PageType.PAGE) => {
+    router.push({ name: 'add_page', query: type === PageType.PAGE ? {} : { type } })
+}
+// Admin icin + bir menu acar; digerleri icin dogrudan yeni sayfa.
+const onAddClick = (event: Event) => {
+    if (!isAdmin.value) {
+        newPageClick()
+        return
+    }
+    showContextMenu({
+        event,
+        placement: 'top',
+        align: 'end',
+        items: [
+            { name: 'New Page', click: () => newPageClick(PageType.PAGE) },
+            { name: 'New Multiple Choice', click: () => newPageClick(PageType.MULTIPLE_CHOICE) },
+        ],
+    })
 }
 
 const onDeleteClick = (pageId: number) => {

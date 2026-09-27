@@ -2,6 +2,12 @@ import { WordModel } from '@/wordManagement/WordModel'
 import { WordMode } from '@/wordManagement/WordMode'
 import { splitByDelimiters } from '@/junk/util/splitByDelimiters'
 
+export type MultipleChoiceQuestion = {
+  question: string
+  answers: string[]
+  correctIndex: number
+}
+
 
 export class WordManager {
   static _instance: WordManager | null = null;
@@ -25,6 +31,22 @@ export class WordManager {
       const right = (w.meaning ?? '').trim()
       return right === '' ? left : `${left} | ${right}`
     }).filter(line => line !== '').join('\n')
+  }
+
+  // Multiple choice sayfalari: her satir "soru | dogru | yanlis | yanlis ...".
+  // Ilk cevap her zaman dogrudur; soru ve en az iki cevabi olmayan satir atlanir.
+  setupMultipleChoice(allQuestions: string): MultipleChoiceQuestion[] {
+    const questions: MultipleChoiceQuestion[] = [];
+    allQuestions.split("\n").forEach(line => {
+      const parts = splitByDelimiters(line, this.delimiters)
+        .map(part => part.trim())
+        .filter(part => part !== '')
+      if (parts.length < 3) {
+        return;
+      }
+      questions.push({ question: parts[0], answers: parts.slice(1), correctIndex: 0 })
+    });
+    return questions
   }
 
   setupWords(allWords: string): WordModel[] {

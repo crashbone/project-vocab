@@ -29,7 +29,7 @@ def get_pages(request: Request, user=Depends(auth_required)):
         )
         cursor = conn.cursor()
         sql_query = """
-            SELECT id, user_id, name, description, words, time_spent_seconds, last_entry_at
+            SELECT id, user_id, name, description, words, time_spent_seconds, last_entry_at, type
             FROM pages
             WHERE user_id = %s;
         """
@@ -38,7 +38,7 @@ def get_pages(request: Request, user=Depends(auth_required)):
         cursor.close()
         conn.close()
         if rows:
-            headers = ["id", "user_id", "name", "description", "words", "time_spent_seconds", "last_entry_at"]
+            headers = ["id", "user_id", "name", "description", "words", "time_spent_seconds", "last_entry_at", "type"]
             result = [dict(zip(headers, row)) for row in rows]
         else:
             result = []

@@ -2,6 +2,7 @@ import { PageModel } from "@/wordManagement/PageModel"
 import { fetchPages } from "@/wordManagement/fetchPages"
 import { WordManager } from "@/wordManagement/wordManager"
 import { DashboardModel } from "@/wordManagement/DashboardModel"
+import { PageType } from "@/wordManagement/PageType"
 
 // TODO: DO STH BETTER (pagemodel and wordmodel should not be created and set up like this, this is shit code)
 export const fetchPagesBuildDashboardModel = async (): Promise<DashboardModel> => {
@@ -11,7 +12,11 @@ export const fetchPagesBuildDashboardModel = async (): Promise<DashboardModel> =
 
     pagesJsons.forEach(pageJson => {
       const wordManager = WordManager.instance;
-      
+
+      if (pageJson.type === PageType.MULTIPLE_CHOICE) {
+        pageModels.push(new PageModel(pageJson, [], wordManager.setupMultipleChoice(pageJson.words)))
+        return
+      }
 
       const wordsWordManager = wordManager.setupWords(pageJson.words)
       pageModels.push(new PageModel(pageJson, wordsWordManager))

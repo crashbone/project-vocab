@@ -24,6 +24,12 @@ const routes = [
     props: true,
   },
   {
+    path: '/multiple_choice/:pageId',
+    name: 'multiple_choice',
+    component: () => import('@/Pages/PageMultipleChoice/PageMultipleChoice.vue'),
+    props: true,
+  },
+  {
     path: '/add_page',
     name: 'add_page',
     component: () => import('@/Pages/PageAddPage/PageAddPage.vue'),

@@ -5,7 +5,18 @@
                              :title="title"
                              :titleAdjustable="true"
                              @update:title="title = $event">
-            <template v-if="viewMode === ViewMode.RAW" #right>
+            <template v-if="isMultipleChoice" #right>
+                <SvgX v-tooltip="{
+                    title: 'How to write Multiple Choice',
+                    body: `One question per line (ENTER).
+Separate the question and its answers with:
+' | ' (one space, one '|', one space)
+The FIRST answer is the correct one, add as many as you like:
+Capital of France? | Paris | Berlin | Rome
+2 + 2 = ? | 4 | 3 | 5 | 22`
+                }" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
+            </template>
+            <template v-else-if="viewMode === ViewMode.RAW" #right>
                 <SvgX v-tooltip="{
                     title: 'How to use Raw View',
                     body: `Separate two sides of the flash card with:
@@ -95,6 +106,8 @@ import { computed, nextTick, ref, watch, type Ref } from "vue";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 import { ViewMode } from "./ViewMode";
 import { WordManager } from "@/wordManagement/wordManager";
+import { PageType } from "@/wordManagement/PageType";
+import { useRoute } from "vue-router";
 
 const appStore = useAppStore()
 
@@ -112,7 +125,10 @@ type BottomBarObj = {
 }
 
 
-const title = ref('New Page')
+// Multiple choice sayfalari (admin) simdilik sadece raw view ile olusturulur.
+const isMultipleChoice = useRoute().query.type === PageType.MULTIPLE_CHOICE
+
+const title = ref(isMultipleChoice ? 'New Multiple Choice' : 'New Page')
 const wordObjects = ref([{
     w1: "",
     w1EditMode: false,
@@ -122,12 +138,12 @@ const wordObjects = ref([{
 const wordInputs1: Ref<HTMLElement[]> = ref([]);
 const wordInputs2: Ref<HTMLElement[]> = ref([]);
 const rawModeString = ref('');
-const viewMode = ref(ViewMode.STANDARD)
+const viewMode = ref(isMultipleChoice ? ViewMode.RAW : ViewMode.STANDARD)
 
 const bottomBarButtons = computed((): BottomBarObj[][] => {
     return [
         [],  // empty block1 (no cancel in addPage)
-        [
+        isMultipleChoice ? [] : [
             {
                 icon: 'export',
                 name: 'Standard View',
@@ -276,7 +292,8 @@ const onSaveClick = () => {
     const requestData = {
         name: title.value,
         description: "no-description-yet",
-        words: wordsString
+        words: wordsString,
+        type: isMultipleChoice ? PageType.MULTIPLE_CHOICE : PageType.PAGE,
     } as PostRequestDataType;
     sendAddNewPageRequest(requestData).then(async (res) => {
         if (res.success) {

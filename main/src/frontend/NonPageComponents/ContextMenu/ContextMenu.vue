@@ -1,7 +1,8 @@
 <template>
     <Teleport to="body">
         <div v-if="state.visible" class="context-menu-overlay" @click="close">
-            <div class="context-menu-popup" :style="positionStyle" @click.stop>
+            <div class="context-menu-popup" :class="`align-${state.align} placement-${state.placement}`"
+                 :style="positionStyle" @click.stop>
                 <div v-for="(item, i) in state.items" :key="i"
                      class="context-menu-item"
                      :class="{ disabled: item.disabled }"
@@ -22,6 +23,13 @@ const positionStyle = computed(() => {
     if (!rect) return {}
 
     const centerX = rect.left + rect.width / 2
+    const vertical = state.placement === 'top'
+        ? { bottom: `${window.innerHeight - rect.top + state.offset}px` }
+        : { top: `${rect.bottom + state.offset}px` }
+
+    if (state.align === 'end') {
+        return { ...vertical, right: `${window.innerWidth - rect.right}px` }
+    }
 
     if (state.placement === 'top') {
         return {
@@ -78,6 +86,30 @@ const onItemClick = (item: ContextMenuItem) => {
             opacity: 0.35;
             cursor: default;
         }
+    }
+}
+
+// Sag hizali menu: translate yok, tetikleyiciye yakin kosesinden buyuyerek acilir.
+.context-menu-popup.align-end {
+    animation-name: contextMenuPopInEnd;
+
+    &.placement-top {
+        transform-origin: bottom right;
+    }
+
+    &.placement-bottom {
+        transform-origin: top right;
+    }
+}
+
+@keyframes contextMenuPopInEnd {
+    0% {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
