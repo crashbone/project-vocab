@@ -1,11 +1,37 @@
 <template>
     <div v-if="!page"></div>
-    <div v-else class="app-frame page words multiple-choice">
-        <!-- TOP BAR -->
-        <PageWithWordsTopBar :title="page.name" />
+    <div v-else class="app-frame page words multiple-choice" :class="{ 'edit-mode-active': editMode }">
+        <!-- TOP BAR: baslik ve edit sadece oyun duraklamisken (idle / over) degisebilir. -->
+        <PageWithWordsTopBar
+                             :title="editMode ? editTitle : title"
+                             :titleAdjustable="gameState !== 'playing'"
+                             :backHandler="editMode ? exitEditMode : undefined"
+                             @update:title="editMode ? (editTitle = $event) : (title = $event)"
+                             @commit:title="onTitleCommit">
+            <template v-if="editMode" #right>
+                <SvgX v-tooltip="{
+                    title: 'How to write Multiple Choice',
+                    body: `One question per line (ENTER).
+Separate the question and its answers with:
+' | ' (one space, one '|', one space)
+The FIRST answer is the correct one, add as many as you like:
+Capital of France? | Paris | Berlin | Rome
+2 + 2 = ? | 4 | 3 | 5 | 22`
+                }" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
+            </template>
+            <template v-else-if="gameState !== 'playing'" #right>
+                <SvgX class="pointer" url="/main/src/frontend/assets/svg/pencil.svg" :width="22" :height="22"
+                      @click="enterEditMode" />
+            </template>
+        </PageWithWordsTopBar>
+
+        <!-- CONTENT: Edit mode (sadece Raw, AddPage'deki gibi) -->
+        <div v-if="editMode" class="page-content-container-1">
+            <textarea v-model="editRawModeString" class="raw-mode" />
+        </div>
 
         <!-- CONTENT -->
-        <div class="page-content-container-1">
+        <div v-else class="page-content-container-1">
             <!-- Sadece oyun disinda (baslamadan once / bitince) gorunur; yeri korunur, icerik kaymaz. -->
             <div class="difficulty-bar" :class="{ hidden: gameState === 'playing' }">
                 <div class="segmented-control">
@@ -58,6 +84,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- BOTTOM BAR: Edit mode -->
+        <div v-if="editMode" class="bottom-bar edit-bottom-bar">
+            <LiquidGlass class="bottom-bar-liquid-glass edit-bar-cancel" @click="exitEditMode">
+                <div class="liquid-glass-card-slot-content">
+                    <div class="bottom-bar-button pointer">
+                        <div class="bottom-bar-button-top">
+                            <SvgX url="/main/src/frontend/assets/svg/x.svg" :width="15" :height="15" />
+                        </div>
+                        <div class="bottom-bar-button-bottom">Cancel</div>
+                    </div>
+                </div>
+            </LiquidGlass>
+            <LiquidGlass class="bottom-bar-liquid-glass edit-bar-save" @click="onEditSaveClick">
+                <div class="liquid-glass-card-slot-content">
+                    <div class="bottom-bar-button pointer">
+                        <div class="bottom-bar-button-top">
+                            <SvgX url="/main/src/frontend/assets/svg/export.svg" :width="18" :height="18" />
+                        </div>
+                        <div class="bottom-bar-button-bottom">Save</div>
+                    </div>
+                </div>
+            </LiquidGlass>
+        </div>
     </div>
 </template>
 
@@ -65,7 +115,9 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useAppStore } from '@/stores/appStore'
 import { PageModel } from "@/wordManagement/PageModel";
-import type { MultipleChoiceQuestion } from "@/wordManagement/wordManager";
+import { WordManager, type MultipleChoiceQuestion } from "@/wordManagement/wordManager";
+import { sendUpdatePageRequest } from "@/wordManagement/updatePageRequest";
+import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponents/ConfirmationPopup/confirmationPopup'
 import {
     Difficulty, DIFFICULTY_NAMES, DIFFICULTY_LOCAL_STORAGE_KEY,
     getQuestionDuration, loadDifficulty,
@@ -218,9 +270,106 @@ const onAnswerClick = (i: number) => {
     startQuestion(questionIndex.value + 1)
 }
 
+const title = ref('')
+
+// Kayittan sonra loadPages yeni bir PageModel getirir: baslik ve tur yenilenir.
+// Oyun sirasinda kayit yapilamadigi icin oynanan tur hic bozulmaz.
 watch(page, (newPage, oldPage) => {
-    if (newPage && !oldPage) prepareGame()
+    if (!newPage || newPage === oldPage) return
+    title.value = newPage.name
+    if (gameState.value !== 'playing') prepareGame()
 }, { immediate: true })
+
+
+/* ====================
+ * === TITLE / EDIT ===
+ * ==================== */
+
+const editMode = ref(false)
+const editTitle = ref('')
+const editRawModeString = ref('')
+const editSaving = ref(false)
+
+const showError = (message: string) => {
+    showConfirmationPopup({
+        title: message,
+        buttons: [{ name: 'OK', click: closeConfirmationPopup }],
+    })
+}
+
+// PageWords.onTitleCommit ile ayni akis; sorular mevcut modelden yeniden yazilir.
+const onTitleCommit = async () => {
+    if (editMode.value || !page.value) return
+
+    const newTitle = title.value.trim()
+    if (newTitle === page.value.name) return
+
+    if (newTitle === '') {
+        title.value = page.value.name
+        showError('Title cannot be empty.')
+        return
+    }
+
+    const previousTitle = page.value.name
+    const res = await sendUpdatePageRequest({
+        id: page.value.id,
+        name: newTitle,
+        description: page.value.description,
+        words: WordManager.instance.formatMultipleChoiceForExport(page.value.questions),
+    })
+
+    if (!res.success) {
+        title.value = previousTitle
+        showError(`Could not save title: ${res.error ?? 'unknown error'}`)
+        return
+    }
+
+    await appStore.loadPages()
+}
+
+const enterEditMode = () => {
+    if (!page.value || gameState.value === 'playing') return
+    editTitle.value = page.value.name
+    editRawModeString.value = WordManager.instance.formatMultipleChoiceForExport(page.value.questions)
+    editMode.value = true
+}
+
+const exitEditMode = () => {
+    editMode.value = false
+}
+
+const onEditSaveClick = async () => {
+    if (editSaving.value || !page.value) return
+
+    if (editTitle.value.trim() === '') {
+        showError('Title cannot be empty.')
+        return
+    }
+
+    const words = editRawModeString.value.replace(/\n+$/, '')
+    if (WordManager.instance.setupMultipleChoice(words).length === 0) {
+        showError('Add at least one question with two answers.')
+        return
+    }
+
+    editSaving.value = true
+    const res = await sendUpdatePageRequest({
+        id: page.value.id,
+        name: editTitle.value,
+        description: page.value.description,
+        words,
+    })
+    editSaving.value = false
+
+    if (!res.success) {
+        // Edit mode acik kalir, kullanici yazdigini kaybetmez.
+        showError(`Could not save: ${res.error ?? 'unknown error'}`)
+        return
+    }
+
+    await appStore.loadPages()
+    exitEditMode()
+}
 
 
 

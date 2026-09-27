@@ -3,9 +3,39 @@
 // - PageWithWords.scss (.page.words: top bar, .page-content-container-1)
 
 .page.words.multiple-choice {
-  // Alt bar yok; PageWithWords.scss'teki alt bar payi burada gereksiz.
-  .page-content-container-1 {
+  // Oyunda alt bar yok; PageWithWords.scss'teki alt bar payi sadece edit modunda gerekli.
+  &:not(.edit-mode-active) .page-content-container-1 {
     padding-bottom: 36px;
+  }
+
+  // ---------- EDIT MODE ----------
+  // Sayfalar lazy yuklendigi icin PageWords.scss'e guvenilmez; Cancel / Save bari burada.
+  textarea.raw-mode {
+    height: 100%;
+    padding: 12px;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .edit-bottom-bar {
+    display: flex;
+    justify-content: space-evenly;
+    padding-inline: 12px;
+    // PageWords.scss yuklendiyse onun `width: auto !important`'i ile ayni sonuc.
+    width: auto !important;
+    margin: auto;
+    --border-radius: 32px;
+
+    .liquid-glass-card-slot-content {
+      width: 60px;
+      padding: 0;
+    }
+
+    .bottom-bar-button {
+      height: auto;
+      padding: 12px 0;
+    }
   }
 
   // ---------- TIMER (sorunun solunda) ----------
@@ -100,15 +130,20 @@
     display: flex;
     align-items: center;
     gap: 10px;
+
+    // Genislik icerikten degil satirdan gelsin; uzun soru asagi sarar.
+    .question {
+      flex: 1 1 0;
+    }
   }
 
   .question {
     min-width: 0;
+    overflow-wrap: anywhere;
     color: $color-lilac-800;
     font-size: 17px;
     font-weight: 600;
     line-height: 1.35;
-    word-wrap: break-word;
     padding: 0 4px;
   }
 

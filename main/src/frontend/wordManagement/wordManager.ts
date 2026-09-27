@@ -49,6 +49,14 @@ export class WordManager {
     return questions
   }
 
+  // setupMultipleChoice'un tersi: dogru cevap tekrar ilk sikka yazilir.
+  formatMultipleChoiceForExport(questions: MultipleChoiceQuestion[]): string {
+    return questions.map(q => {
+      const answers = [q.answers[q.correctIndex], ...q.answers.filter((_, i) => i !== q.correctIndex)]
+      return [q.question, ...answers].join(' | ')
+    }).join('\n')
+  }
+
   setupWords(allWords: string): WordModel[] {
     //whole string input splitted into array using "\n"
     const words: WordModel[] = [];
