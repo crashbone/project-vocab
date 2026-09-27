@@ -44,3 +44,6 @@ mem0/
 
 # Serena MCP (machine-specific)
 .serena/
+
+# Third-party agent skills (installed locally via skills-lock.json, not published)
+.agents/skills/
