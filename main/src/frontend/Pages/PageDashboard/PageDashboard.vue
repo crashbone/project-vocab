@@ -11,12 +11,19 @@
         <div class="top-bar">
             <div class="top-bar-inner-container">
                 <div class="left pointer"></div>
-                <div class="middle header1">
+                <div v-if="!searchOpen" class="middle header1">
                     PROJECT VOCAB
                 </div>
+                <div v-else class="middle">
+                    <input ref="search-input" v-model="searchQuery" class="search-input" type="text"
+                           placeholder="Search pages and words" @keydown.esc="closeSearch" />
+                </div>
                 <div class="right">
-                    <SvgX class="pointer" url="/main/src/frontend/assets/svg/search.svg" :width="27" :height="27" />
-                    <div v-if="initialData" class="profile-icon pointer">{{ initialData.user.name[0] }}</div>
+                    <SvgX v-if="!searchOpen" class="pointer" url="/main/src/frontend/assets/svg/search.svg" :width="27" :height="27"
+                          @click="openSearch" />
+                    <SvgX v-else class="pointer" url="/main/src/frontend/assets/svg/x.svg" :width="18" :height="18"
+                          style="align-self: center;" @click="closeSearch" />
+                    <div v-if="initialData" class="profile-icon pointer" @click="onProfileClick">{{ initialData.user.name[0] }}</div>
                 </div>
             </div>
 
@@ -38,18 +45,12 @@
             </div>
             <template v-if="model">
                 <div class="section"
-                     v-for="(pageModelIdsGrouped, groupIndex) in [
-                        model.pageModelIdsGrouped.recent.slice(0, model.AMOUNT_OF_PAGES_GROUPED),
-                        model.pageModelIdsGrouped.frequent.slice(0, model.AMOUNT_OF_PAGES_GROUPED),
-                        model.pageModelIdsGrouped.recent.slice(model.AMOUNT_OF_PAGES_GROUPED)]"
-                     :key="groupIndex">
-                    <div class="sub-title header1">
-                        <template v-if="groupIndex === 0">RECENT</template>
-                        <template v-if="groupIndex === 1">FREQUENT</template>
-                        <template v-if="groupIndex === 2">{{ model.restTitle.toUpperCase() }}</template>
-                    </div>
+                     v-for="(section, groupIndex) in sections"
+                     :key="section.title">
+                    <div class="sub-title header1">{{ section.title }}</div>
+                    <div v-if="searchQuery.trim() && section.ids.length === 0" class="no-results">No results</div>
                     <div class="word-page-buttons-container">
-                        <template v-for="(pageModel, index) in pageModelIdsGrouped.map((pageModelId: number) => model!.pageModelMap[pageModelId])"
+                        <template v-for="(pageModel, index) in section.ids.map((pageModelId: number) => model!.pageModelMap[pageModelId])"
                                   :key="index">
                             <ButtonX @tap="pageClick(pageModel.id)"
                                      :index="groupIndex * model.AMOUNT_OF_PAGES_GROUPED + index"
@@ -78,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, ref, useTemplateRef } from "vue";
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
 import { getDateTitle } from '@/junk/util/getDateTitle';
@@ -89,6 +90,9 @@ import { sendTriggerGitUpdateRequest } from "@/junk/admin/triggerGitUpdateReques
 import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponents/ConfirmationPopup/confirmationPopup'
 import { showContextMenu } from '@/NonPageComponents/ContextMenu/contextMenu'
 import { PageType } from '@/wordManagement/PageType';
+import type { PageModel } from '@/wordManagement/PageModel';
+import { sendLogoutRequest } from '@/wordManagement/logoutRequest';
+import { toLandingPage } from '@/junk/router';
 
 const appStore = useAppStore()
 
@@ -108,6 +112,80 @@ const welcomeText = computed(() => {
         : 0
     return getPracticeGapText(lastEntryAt > 0 ? new Date(lastEntryAt) : undefined)
 })
+
+/* ==============
+ * === SEARCH ===
+ * ============== */
+
+const searchOpen = ref(false)
+const searchQuery = ref('')
+const searchInput = useTemplateRef<HTMLInputElement>('search-input')
+
+const openSearch = () => {
+    searchOpen.value = true
+    nextTick().then(() => searchInput.value?.focus())
+}
+
+const closeSearch = () => {
+    searchOpen.value = false
+    searchQuery.value = ''
+}
+
+// Sayfa adi + icerik: kelime sayfalarinda iki yuz, coktan secmelide soru ve siklar.
+const pageMatches = (page: PageModel, query: string) => {
+    const texts = [
+        page.name,
+        ...page.wordModels.flatMap(w => [w.word, w.meaning]),
+        ...page.questions.flatMap(q => [q.question, ...q.answers]),
+    ]
+    return texts.some(t => t?.toLowerCase().includes(query))
+}
+
+// Arama doluyken gruplar yerine tek bir sonuc bolumu (en son calisilan once).
+const sections = computed(() => {
+    const m = model.value
+    if (!m) return []
+    const query = searchQuery.value.trim().toLowerCase()
+    if (query) {
+        return [{
+            title: 'RESULTS',
+            ids: m.pageModelIdsGrouped.recent.filter(id => pageMatches(m.pageModelMap[id]!, query)),
+        }]
+    }
+    return [
+        { title: 'RECENT', ids: m.pageModelIdsGrouped.recent.slice(0, m.AMOUNT_OF_PAGES_GROUPED) },
+        { title: 'FREQUENT', ids: m.pageModelIdsGrouped.frequent.slice(0, m.AMOUNT_OF_PAGES_GROUPED) },
+        { title: m.restTitle.toUpperCase(), ids: m.pageModelIdsGrouped.recent.slice(m.AMOUNT_OF_PAGES_GROUPED) },
+    ]
+})
+
+
+/* ==============
+ * === LOGOUT ===
+ * ============== */
+
+const onProfileClick = (event: Event) => {
+    showContextMenu({
+        event,
+        placement: 'bottom',
+        align: 'end',
+        items: [{ name: 'Logout', click: logout }],
+    })
+}
+
+const logout = async () => {
+    const res = await sendLogoutRequest()
+    if (!res.success) {
+        showConfirmationPopup({
+            title: `Could not log out: ${res.error ?? 'unknown error'}`,
+            buttons: [{ name: 'OK', click: closeConfirmationPopup }],
+        })
+        return
+    }
+    appStore.initialData = { logged_in: false }
+    appStore.dashboardModel = undefined
+    toLandingPage()
+}
 
 const router = useRouter()
 const pageClick = (pageId: number) => {

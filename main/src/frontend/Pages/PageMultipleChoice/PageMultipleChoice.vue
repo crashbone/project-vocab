@@ -1,13 +1,12 @@
 <template>
     <div v-if="!page"></div>
     <div v-else class="app-frame page words multiple-choice" :class="{ 'edit-mode-active': editMode }">
-        <!-- TOP BAR: baslik ve edit sadece oyun duraklamisken (idle / over) degisebilir. -->
+        <!-- TOP BAR: baslik sadece edit modunda degisir; edit'e sadece oyun disinda (idle / over) girilir. -->
         <PageWithWordsTopBar
                              :title="editMode ? editTitle : title"
-                             :titleAdjustable="gameState !== 'playing'"
-                             :backHandler="editMode ? exitEditMode : undefined"
-                             @update:title="editMode ? (editTitle = $event) : (title = $event)"
-                             @commit:title="onTitleCommit">
+                             :titleAdjustable="editMode"
+                             :hideBack="editMode"
+                             @update:title="editTitle = $event">
             <template v-if="editMode" #right>
                 <SvgX v-tooltip="{
                     title: 'How to write Multiple Choice',
@@ -19,7 +18,7 @@ Capital of France? | Paris | Berlin | Rome
 2 + 2 = ? | 4 | 3 | 5 | 22`
                 }" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
             </template>
-            <template v-else-if="gameState !== 'playing'" #right>
+            <template v-else-if="!inGame" #right>
                 <SvgX class="pointer" url="/main/src/frontend/assets/svg/pencil.svg" :width="22" :height="22"
                       @click="enterEditMode" />
             </template>
@@ -32,19 +31,30 @@ Capital of France? | Paris | Berlin | Rome
 
         <!-- CONTENT -->
         <div v-else class="page-content-container-1">
-            <!-- Sadece oyun disinda (baslamadan once / bitince) gorunur; yeri korunur, icerik kaymaz. -->
-            <div class="difficulty-bar" :class="{ hidden: gameState === 'playing' }">
-                <div class="segmented-control">
-                    <div v-for="d in DIFFICULTIES" :key="d"
-                         class="segment pointer" :class="{ active: difficulty === d }"
-                         @click="setDifficulty(d)">
-                        {{ DIFFICULTY_NAMES[d] }}
+            <!-- Ayni yeri paylasirlar: oyun disinda zorluk secimi, oyunda solda ilerleme + sagda Pause. -->
+            <div class="top-controls">
+                <div class="difficulty-bar" :class="{ hidden: inGame }">
+                    <div class="segmented-control">
+                        <div v-for="d in DIFFICULTIES" :key="d"
+                             class="segment pointer" :class="{ active: difficulty === d }"
+                             @click="setDifficulty(d)">
+                            {{ DIFFICULTY_NAMES[d] }}
+                        </div>
+                    </div>
+                </div>
+                <div class="game-bar" :class="{ hidden: !inGame }">
+                    <div class="progress">{{ questionIndex + 1 }} / {{ questions.length }}</div>
+                    <div class="game-bar-button pointer" @click="gameState === 'paused' ? resumeGame() : pauseGame()">
+                        {{ gameState === 'paused' ? 'Resume' : 'Pause' }}
                     </div>
                 </div>
             </div>
 
             <div class="quiz-area">
                 <template v-if="current">
+                    <div v-if="gameState === 'over'" class="result-strip" :class="endReason">
+                        {{ resultText }}
+                    </div>
                     <div class="question-row">
                         <!-- Kalan sure: halka soru basinda bos, sure bitince tam dolu (lineer). -->
                         <div class="mc-timer">
@@ -73,11 +83,17 @@ Capital of France? | Paris | Berlin | Rome
                             </div>
                         </ButtonX>
                     </div>
+                    <div v-if="gameState === 'over'" class="play-again pointer" @click="startGame">
+                        <div class="play-triangle"></div>
+                        Play again
+                    </div>
                 </template>
                 <div v-else-if="!hasQuestions" class="question">This page has no questions.</div>
 
-                <!-- Baslamadan once ve oyun bitince: header ve zorluk secimi acik kalir, sadece sorular kaplanir. -->
-                <div v-if="gameState !== 'playing' && hasQuestions" class="play-overlay pointer" @click="startGame">
+                <!-- Baslamadan once ve pause'da sorular kaplanir (pause'da soru okunup dusunulmesin).
+                     Oyun bitince kaplanmaz: dogru / yanlis renkleri ve sonuc seridi gorunur kalir. -->
+                <div v-if="(gameState === 'idle' || gameState === 'paused') && hasQuestions" class="play-overlay pointer"
+                     @click="gameState === 'paused' ? resumeGame() : startGame()">
                     <div class="play-button">
                         <div class="play-triangle"></div>
                     </div>
@@ -172,8 +188,19 @@ const setDifficulty = (d: Difficulty) => {
 const questions = ref<MultipleChoiceQuestion[]>([])
 const questionIndex = ref(0)
 // idle: sayfa acildi, Start'a (▶) basilmadi. Quiz kendiliginden baslamaz.
-const gameState = ref<'idle' | 'playing' | 'over'>('idle')
+const gameState = ref<'idle' | 'playing' | 'paused' | 'over'>('idle')
+// Tur suruyor (oynaniyor ya da duraklatildi): zorluk ve edit kapali.
+const inGame = computed(() => gameState.value === 'playing' || gameState.value === 'paused')
 const pickedIndex = ref(-1)
+const endReason = ref<'wrong' | 'timeout' | 'done'>('done')
+
+// Yanlis ya da sure bitti: o soruya kadar olanlar dogru bilindi.
+const resultText = computed(() => {
+    const total = questions.value.length
+    if (endReason.value === 'done') return `✓ ${total} / ${total} correct`
+    const label = endReason.value === 'wrong' ? '✗ Wrong' : "⏱ Time's up"
+    return `${label} · ${questionIndex.value} / ${total} correct`
+})
 
 const current = computed(() => questions.value[questionIndex.value])
 const hasQuestions = computed(() => (page.value?.questions.length ?? 0) > 0)
@@ -238,7 +265,7 @@ const tick = (now: number) => {
     elapsed.value = now - questionStartedAt
     if (elapsed.value >= questionDuration.value) {
         elapsed.value = questionDuration.value
-        endGame()
+        endGame('timeout')
         return
     }
     rafId = requestAnimationFrame(tick)
@@ -251,20 +278,35 @@ const stopTimer = () => {
     }
 }
 
-const endGame = () => {
+const endGame = (reason: 'wrong' | 'timeout' | 'done') => {
     stopTimer()
+    endReason.value = reason
     gameState.value = 'over'
+}
+
+// Gecen sure (elapsed) korunur; devamda baslangic ani o kadar geri alinir.
+const pauseGame = () => {
+    if (gameState.value !== 'playing') return
+    stopTimer()
+    gameState.value = 'paused'
+}
+
+const resumeGame = () => {
+    if (gameState.value !== 'paused') return
+    questionStartedAt = performance.now() - elapsed.value
+    gameState.value = 'playing'
+    rafId = requestAnimationFrame(tick)
 }
 
 const onAnswerClick = (i: number) => {
     if (gameState.value !== 'playing' || !current.value) return
     pickedIndex.value = i
     if (i !== current.value.correctIndex) {
-        endGame()
+        endGame('wrong')
         return
     }
     if (questionIndex.value + 1 >= questions.value.length) {
-        endGame()
+        endGame('done')
         return
     }
     startQuestion(questionIndex.value + 1)
@@ -277,7 +319,7 @@ const title = ref('')
 watch(page, (newPage, oldPage) => {
     if (!newPage || newPage === oldPage) return
     title.value = newPage.name
-    if (gameState.value !== 'playing') prepareGame()
+    if (!inGame.value) prepareGame()
 }, { immediate: true })
 
 
@@ -297,38 +339,8 @@ const showError = (message: string) => {
     })
 }
 
-// PageWords.onTitleCommit ile ayni akis; sorular mevcut modelden yeniden yazilir.
-const onTitleCommit = async () => {
-    if (editMode.value || !page.value) return
-
-    const newTitle = title.value.trim()
-    if (newTitle === page.value.name) return
-
-    if (newTitle === '') {
-        title.value = page.value.name
-        showError('Title cannot be empty.')
-        return
-    }
-
-    const previousTitle = page.value.name
-    const res = await sendUpdatePageRequest({
-        id: page.value.id,
-        name: newTitle,
-        description: page.value.description,
-        words: WordManager.instance.formatMultipleChoiceForExport(page.value.questions),
-    })
-
-    if (!res.success) {
-        title.value = previousTitle
-        showError(`Could not save title: ${res.error ?? 'unknown error'}`)
-        return
-    }
-
-    await appStore.loadPages()
-}
-
 const enterEditMode = () => {
-    if (!page.value || gameState.value === 'playing') return
+    if (!page.value || inGame.value) return
     editTitle.value = page.value.name
     editRawModeString.value = WordManager.instance.formatMultipleChoiceForExport(page.value.questions)
     editMode.value = true

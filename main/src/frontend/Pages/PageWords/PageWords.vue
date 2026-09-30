@@ -4,11 +4,10 @@
         <!-- TOP BAR -->
         <PageWithWordsTopBar
                              :title="editMode ? editTitle : title"
-                             :titleAdjustable="editMode ? true : !selectionMode"
+                             :titleAdjustable="editMode"
                              :backDisabled="selectionMode"
-                             :backHandler="editMode ? exitEditMode : undefined"
-                             @update:title="editMode ? (editTitle = $event) : (title = $event)"
-                             @commit:title="onTitleCommit">
+                             :hideBack="editMode"
+                             @update:title="editTitle = $event">
             <template v-if="editMode && editViewMode === ViewMode.RAW" #right>
                 <SvgX v-tooltip="{
                     title: 'How to use Raw View',
@@ -37,9 +36,10 @@ das Kind    Child`
         </PageWithWordsTopBar>
 
         <!-- CONTENT: Normal / Selection mode -->
-        <div v-if="!editMode" class="page-content-container-1">
+        <div v-if="!editMode" ref="listContainer" class="page-content-container-1">
             <template v-for="(word, index) in page!.wordModels" :key="index">
                 <ButtonX @click="wordClick(index)"
+                         @[LONG_TAP_EVENT]="(e: Event) => onWordLongTap(e, index)"
                          :shining_border_animation="word.marker"
                          class="size80px" :class="[
                              `wordMode${word.mode}`,
@@ -58,7 +58,7 @@ das Kind    Child`
         </div>
 
         <!-- CONTENT: Edit mode - Standard -->
-        <div v-else-if="editViewMode === ViewMode.STANDARD" class="page-content-container-1">
+        <div v-else-if="editViewMode === ViewMode.STANDARD" ref="listContainer" class="page-content-container-1">
             <template v-for="(word, index) in editWordObjects" :key="index">
                 <div class="row">
                     <ButtonX class="size80px" :class="{ 'edit-mode': word.w1EditMode }" :index="index"
@@ -148,6 +148,17 @@ das Kind    Child`
                     </div>
                 </div>
             </LiquidGlass>
+            <LiquidGlass class="bottom-bar-liquid-glass" :class="{ disabled: selectedIndices.size === 0 }"
+                         @click="confirmDeleteWords(selectedIndices, exitSelectionMode)">
+                <div class="liquid-glass-card-slot-content">
+                    <div class="bottom-bar-button pointer">
+                        <div class="bottom-bar-button-top">
+                            <SvgX url="/main/src/frontend/assets/svg/trash.svg" :width="18" :height="18" />
+                        </div>
+                        <div class="bottom-bar-button-bottom">Delete</div>
+                    </div>
+                </div>
+            </LiquidGlass>
             <LiquidGlass class="bottom-bar-liquid-glass" @click="exitSelectionMode">
                 <div class="liquid-glass-card-slot-content">
                     <div class="bottom-bar-button pointer">
@@ -209,7 +220,7 @@ das Kind    Child`
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, type Ref } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, useTemplateRef, type Ref } from "vue";
 import { useAppStore } from '@/stores/appStore'
 import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponents/ConfirmationPopup/confirmationPopup'
 import { showContextMenu } from '@/NonPageComponents/ContextMenu/contextMenu'
@@ -223,6 +234,7 @@ import { shuffle } from "@/junk/util/shuffle";
 import type { WordModel } from "@/wordManagement/WordModel";
 import { WordManager } from "@/wordManagement/wordManager";
 import { applyMarkers, saveMarkers } from "@/wordManagement/markerStore";
+import { LONG_TAP_EVENT } from "@/directives/tap";
 import { sendUpdatePageRequest } from "@/wordManagement/updatePageRequest";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 
@@ -246,6 +258,8 @@ const DOUBLE_CLICK_MS = 230;
 let singleClickTimer: ReturnType<typeof setTimeout> | undefined;
 let pendingClickIndex = -1;
 const editMode = ref(false);
+// Kelime listesi / edit listesi (ikisi ayni anda render edilmez, ref ortak).
+const listContainer = useTemplateRef<HTMLElement>('listContainer');
 const props = defineProps({
     pageId: String, // it has to be string, because url param
 })
@@ -323,6 +337,7 @@ const editViewMode = ref(ViewMode.STANDARD)
 
 const enterEditMode = () => {
     if (!page.value) return
+    scrollTopBeforeEdit = listContainer.value?.scrollTop ?? 0
     editTitle.value = page.value.name
     editWordObjects.value = page.value.wordModels.map(wm => {
         const left = wm.hasArtikel ? `${wm.artikel} ${wm.word}` : wm.word
@@ -339,8 +354,24 @@ const enterEditMode = () => {
     editMode.value = true
 }
 
+// Edit'e girmeden onceki liste konumu; Cancel / Save sonrasi kullanici kaldigi yere doner.
+let scrollTopBeforeEdit = 0
+
 const exitEditMode = () => {
     editMode.value = false
+    nextTick().then(() => {
+        if (listContainer.value) listContainer.value.scrollTop = scrollTopBeforeEdit
+    })
+}
+
+// Uzun basma menusundeki Edit: edit modu acilir, o kelimenin satirina gidilir ve sol kutusu duzenlenir.
+const editWordAt = (i: number) => {
+    enterEditMode()
+    nextTick().then(() => {
+        const row = listContainer.value?.querySelectorAll('.row')[i]
+        row?.scrollIntoView({ block: 'center' })
+        onEditWordClick(i, 1)
+    })
 }
 
 const onEditWordClick = (i: number, wi: number) => {
@@ -404,42 +435,46 @@ const onEditWordObjectsChanged = () => {
 
 watch(editWordObjects, () => onEditWordObjectsChanged(), { deep: true })
 
-// Edit moduna girmeden, ust bardaki kalemle baslik degistirildiginde kaydeder.
-// Kelimeler mevcut modellerden yeniden uretilir (export ile ayni serilestirme).
-const onTitleCommit = async () => {
-    if (editMode.value) return
-    if (!page.value) return
+// Uzun basma menusundeki Delete ve secim modundaki Delete ortak yolu.
+// Kalan kelimeler ekrandaki siralariyla yeniden yazilir (export ile ayni serilestirme).
+const deleteWords = async (indices: Set<number>) => {
+    if (!page.value || indices.size === 0) return
 
-    const newTitle = title.value.trim()
-    if (newTitle === page.value.name) return
-
-    if (newTitle === '') {
-        title.value = page.value.name
-        showConfirmationPopup({
-            title: 'Title cannot be empty.',
-            buttons: [{ name: 'OK', click: closeConfirmationPopup }],
-        })
-        return
-    }
-
-    const previousTitle = page.value.name
+    const remaining = page.value.wordModels.filter((_, i) => !indices.has(i))
     const res = await sendUpdatePageRequest({
         id: page.value.id,
-        name: newTitle,
+        name: page.value.name,
         description: page.value.description,
-        words: WordManager.instance.formatWordsForExport(page.value.wordModels),
+        words: WordManager.instance.formatWordsForExport(remaining),
     })
 
     if (!res.success) {
-        title.value = previousTitle
         showConfirmationPopup({
-            title: `Could not save title: ${res.error ?? 'unknown error'}`,
+            title: `Could not delete: ${res.error ?? 'unknown error'}`,
             buttons: [{ name: 'OK', click: closeConfirmationPopup }],
         })
         return
     }
 
     await appStore.loadPages()
+}
+
+const confirmDeleteWords = (indices: Set<number>, onDone?: () => void) => {
+    if (indices.size === 0) return
+    showConfirmationPopup({
+        title: indices.size === 1 ? 'Delete this word?' : `Delete ${indices.size} words?`,
+        buttons: [
+            { name: 'Cancel', click: closeConfirmationPopup },
+            {
+                name: 'Delete',
+                click: async () => {
+                    closeConfirmationPopup()
+                    await deleteWords(indices)
+                    onDone?.()
+                },
+            },
+        ],
+    })
 }
 
 const editSaving = ref(false)
@@ -561,7 +596,34 @@ const exportWords = (type: 'marked' | 'selected' | 'all') => {
  * === METHODS ===
  * =============== */
 
+// Uzun basmayi takip eden click (ayni hareketin parmak kaldirisi) kelimenin modunu degistirmesin.
+// Bir sonraki pointerdown bayragi temizler: sonraki normal tiklamalar etkilenmez.
+let suppressNextClick = false
+
+const onWordLongTap = (event: Event, i: number) => {
+    if (selectionMode.value || !page.value) return
+    const word = page.value.wordModels[i]
+    if (!word) return
+
+    suppressNextClick = true
+    window.addEventListener('pointerdown', () => { suppressNextClick = false }, { once: true, capture: true })
+
+    showContextMenu({
+        event,
+        items: [
+            { name: word.marker ? 'Unmark' : 'Mark', click: () => wordDblClick(i) },
+            { name: 'Copy', click: () => { navigator.clipboard.writeText(WordManager.instance.formatWordsForExport([word])) } },
+            { name: 'Edit', click: () => editWordAt(i) },
+            { name: 'Delete', click: () => confirmDeleteWords(new Set([i])) },
+        ],
+    })
+}
+
 const wordClick = async (i: number) => {
+    if (suppressNextClick) {
+        suppressNextClick = false
+        return
+    }
     if (selectionMode.value) {
         toggleSelection(i)
         return

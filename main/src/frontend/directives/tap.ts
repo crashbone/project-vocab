@@ -9,6 +9,9 @@
 
 const LONG_THRESHOLD_MS = 500
 const TAP_THRESHOLD_MS = 250
+// Vue sablonunda '@tap.long' yazilamaz ('.long' modifier sanilir); dinamik arguman ile:
+//   @[LONG_TAP_EVENT]="onLongTap"
+export const LONG_TAP_EVENT = 'tap.long'
 
 export default {
   install() {
@@ -23,7 +26,7 @@ export default {
       longTapTimer = window.setTimeout(() => {
         if (pressedTarget instanceof HTMLElement) {
           pressedTarget.dispatchEvent(
-            new CustomEvent('tap.long', { bubbles: true })
+            new CustomEvent(LONG_TAP_EVENT, { bubbles: true })
           )
         }
         longTapTimer = null

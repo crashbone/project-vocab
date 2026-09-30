@@ -80,7 +80,44 @@
     }
   }
 
-  // ---------- DIFFICULTY ----------
+  // ---------- DIFFICULTY / GAME BAR (ayni hucreyi paylasir, yukseklik sabit kalir) ----------
+  .top-controls {
+    display: grid;
+
+    > * {
+      grid-area: 1 / 1;
+    }
+  }
+
+  .game-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+    transition: opacity 0.25s ease;
+
+    &.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .progress {
+      color: $color-lilac-700;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .game-bar-button {
+      padding: 6px 16px;
+      border-radius: 11px;
+      background: white;
+      color: $color-lilac-800;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    }
+  }
+
   .difficulty-bar {
     display: flex;
     justify-content: center;
@@ -174,7 +211,52 @@
     }
   }
 
-  // ---------- START / GAME OVER ----------
+  // ---------- GAME OVER ----------
+  .result-strip {
+    align-self: center;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 800;
+    color: white;
+    background: #D0455B;
+
+    &.timeout {
+      background: $color-lilac-700;
+    }
+
+    &.done {
+      background: #3F9E62;
+    }
+  }
+
+  .play-again {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border-radius: 18px;
+    background-color: $color-lilac-700;
+    color: white;
+    font-weight: 800;
+    box-shadow: 0 0 14px -1px rgba(0, 0, 0, 0.45);
+    transition: transform 0.15s ease;
+
+    &:hover {
+      transform: scale(1.04);
+    }
+
+    .play-triangle {
+      width: 0;
+      height: 0;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-left: 13px solid white;
+    }
+  }
+
+  // ---------- START / PAUSE ----------
   .play-overlay {
     position: absolute;
     inset: -8px;

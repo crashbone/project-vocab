@@ -1,8 +1,8 @@
 <template>
     <div class="top-bar">
         <div class="top-bar-inner-container">
-            <div class="left" :class="{ pointer: !backDisabled, 'disabled-back': backDisabled }" @click="handleBack">
-                <SvgX url="/main/src/frontend/assets/svg/left-arrow.svg" :width="24" :height="24" />
+            <div class="left" :class="{ pointer: !backDisabled && !hideBack, 'disabled-back': backDisabled }" @click="handleBack">
+                <SvgX v-if="!hideBack" url="/main/src/frontend/assets/svg/left-arrow.svg" :width="24" :height="24" />
             </div>
             <div class="middle">
                 <div class="middle-left header1">
@@ -12,6 +12,7 @@
                               ref="title-input"
                               :style="`width: ${title.length + 2}ch`"
                               @blur="onTitleFocusOut"
+                              @keydown.enter.prevent="titleInput?.blur()"
                               :value="props.title"
                               @input="emit('update:title', $event.target.value)" />
                 </div>
@@ -47,6 +48,11 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    // Edit modunda cikis sadece Cancel ile; ok hic gosterilmez (yeri korunur, baslik kaymaz).
+    hideBack: {
+        type: Boolean,
+        default: false
+    },
     backHandler: {
         type: Function as PropType<() => void>,
         default: undefined,
@@ -55,7 +61,7 @@ const props = defineProps({
 const emit = defineEmits(['update:title', 'commit:title'])
 
 const handleBack = () => {
-    if (props.backDisabled) return
+    if (props.backDisabled || props.hideBack) return
     if (props.backHandler) {
         props.backHandler()
     } else {

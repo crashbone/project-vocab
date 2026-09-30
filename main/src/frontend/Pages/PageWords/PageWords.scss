@@ -29,6 +29,12 @@
       .liquid-glass-card-slot-content {
         padding-inline: 16px;
       }
+
+      // Secim bosken Delete basilamaz.
+      &.disabled {
+        opacity: 0.4;
+        pointer-events: none;
+      }
     }
   }
 

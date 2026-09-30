@@ -10,6 +10,7 @@ from backend.api.post_addNewPageRequest import router as post_addNewPageRequest
 from backend.api.post_deletePageRequest import router as post_deletePageRequest
 from backend.api.put_updatePageRequest import router as put_updatePageRequest
 from backend.api.post_admin_triggerGitUpdate import router as post_admin_triggerGitUpdate
+from backend.api.post_logout import router as post_logout
 from backend.os import get_ssl, get_host
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -39,6 +40,7 @@ app.include_router(post_addNewPageRequest)
 app.include_router(post_deletePageRequest)
 app.include_router(put_updatePageRequest)
 app.include_router(post_admin_triggerGitUpdate)
+app.include_router(post_logout)
 # app.mount("/", StaticFiles(directory="src2/dist", html=True), name="frontend")
 
 ssl_cert, ssl_key = get_ssl()

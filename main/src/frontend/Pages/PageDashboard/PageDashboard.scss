@@ -25,6 +25,25 @@ html:not(.mobile) {
     .middle {
       flex-grow: 1;
     }
+
+    .search-input {
+      width: 100%;
+      height: 32px;
+      padding: 0 12px;
+      border: none;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+      color: $color-lilac-800;
+      font-size: 15px;
+      outline: none;
+    }
+  }
+
+  .no-results {
+    color: $color-lilac-700;
+    font-size: 14px;
+    padding: 4px 0;
   }
 
 
