@@ -38,7 +38,7 @@ const routes = [
     path: '/portfolio',
     name: 'portfolio',
     component: () => import('@/Pages/PagePortfolio/PagePortfolio.vue'),
-    meta: { title: 'Okan | Frontend Developer' }
+    meta: { title: 'Okan | Software Developer' }
   },
 ]
 const router = createRouter({

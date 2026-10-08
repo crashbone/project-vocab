@@ -284,6 +284,7 @@ const lang = ref<Lang>('en');
 const setLang = (code: Lang) => {
     lang.value = code;
     document.documentElement.lang = code;
+    document.title = code === 'de' ? 'Okan | Softwareentwickler' : 'Okan | Software Developer';
     try {
         localStorage.setItem(LANG_KEY, code);
     } catch {
