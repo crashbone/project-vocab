@@ -7,8 +7,8 @@
                         ? 'py-4 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm'
                         : 'py-8 bg-transparent border-b border-transparent'
                 ]">
-            <nav class="max-w-6xl mx-auto px-4 sm:px-6 flex justify-between items-center gap-4">
-                <div class="flex gap-3 sm:gap-8 text-xs sm:text-sm font-medium text-gray-600">
+            <nav class="max-w-6xl mx-auto px-4 sm:px-6 flex justify-between items-center gap-2 sm:gap-4">
+                <div class="flex flex-wrap min-w-0 gap-x-2.5 gap-y-1 sm:gap-8 text-[11px] sm:text-sm font-medium text-gray-600">
                     <a href="#" class="hover:text-black transition-colors">{{ t.nav.home }}</a>
                     <a href="#services" class="hover:text-black transition-colors">{{ t.nav.services }}</a>
                     <a href="#projects" class="hover:text-black transition-colors">{{ t.nav.projects }}</a>
@@ -24,7 +24,7 @@
                             :aria-label="option.label"
                             @click="setLang(option.code)"
                             :class="[
-                                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer',
+                                'flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer',
                                 lang === option.code ? 'bg-black text-white' : 'text-gray-600 hover:text-black'
                             ]">
                         <svg v-if="option.code === 'en'" viewBox="0 0 60 30" class="w-5 h-3 rounded-[2px] shrink-0" aria-hidden="true">
@@ -43,7 +43,7 @@
                             <rect width="5" height="1" y="1" fill="#DD0000" />
                             <rect width="5" height="1" y="2" fill="#FFCE00" />
                         </svg>
-                        <span>{{ option.code.toUpperCase() }}</span>
+                        <span class="hidden sm:inline">{{ option.code.toUpperCase() }}</span>
                     </button>
                 </div>
             </nav>
