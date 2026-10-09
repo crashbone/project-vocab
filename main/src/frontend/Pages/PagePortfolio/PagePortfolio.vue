@@ -27,7 +27,7 @@
                             :aria-label="option.label"
                             @click="setLang(option.code)"
                             :class="[
-                                'flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer',
+                                'flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer',
                                 lang === option.code ? 'bg-black text-white' : 'text-gray-600 hover:text-black'
                             ]">
                         <svg v-if="option.code === 'en'" viewBox="0 0 60 30" class="w-5 h-3 rounded-[2px] shrink-0" aria-hidden="true">
@@ -65,16 +65,16 @@
                         Okan Akar<br />
                         <span class="text-gray-400">{{ t.hero.role }}</span>
                     </h1>
-                    <p class="text-lg md:text-xl text-gray-600 max-w-2xl leading-relaxed">
+                    <p class="text-base md:text-lg text-gray-600 max-w-2xl leading-relaxed">
                         {{ t.hero.intro }}
                     </p>
-                    <div class="flex gap-4">
+                    <div class="flex flex-wrap gap-3">
                         <a href="#projects"
-                           class="border border-black px-6 py-3 rounded-full font-medium hover:bg-black hover:text-white transition-all">
+                           class="border border-black px-4 py-2.5 md:px-6 md:py-3 rounded-full text-sm font-medium hover:bg-black hover:text-white transition-all">
                             {{ t.hero.viewProjects }}
                         </a>
                         <a href="#contact"
-                           class="bg-black text-white px-6 py-3 rounded-full font-medium hover:bg-gray-800 transition-all">
+                           class="bg-black text-white px-4 py-2.5 md:px-6 md:py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition-all">
                             {{ t.hero.getInTouch }}
                         </a>
                     </div>
@@ -91,7 +91,7 @@
                 <div class="space-y-10">
                     <div v-for="service in t.services" :key="service.title"
                          class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8">
-                        <h3 class="md:col-span-4 text-2xl font-bold tracking-tight">
+                        <h3 class="md:col-span-4 text-xl font-bold tracking-tight">
                             {{ service.title }}
                         </h3>
                         <p class="md:col-span-8 text-gray-600 leading-relaxed md:text-lg">
@@ -108,7 +108,7 @@
                 <!-- Twin Harbour Ortak Açıklama -->
                 <div class="space-y-6">
                     <div>
-                        <h3 class="text-3xl md:text-4xl font-bold tracking-tight">Twin Harbour Interactive</h3>
+                        <h3 class="text-xl md:text-4xl font-bold tracking-tight">Twin Harbour Interactive</h3>
                         <p class="text-gray-500 mt-1">{{ t.twinHarbour.parent }}</p>
                     </div>
                     <p class="text-gray-700 leading-relaxed md:text-lg max-w-4xl">
@@ -125,8 +125,8 @@
                             <img :src="game.image" :alt="game.title"
                                  class="w-full h-[280px] object-cover object-top transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
-                        <h4 class="text-lg font-bold tracking-tight">{{ game.title }}</h4>
-                        <p class="text-blue-600 font-medium text-xs group-hover:underline">
+                        <h4 class="text-xl font-bold tracking-tight">{{ game.title }}</h4>
+                        <p class="text-blue-600 font-medium text-xs md:text-sm group-hover:underline">
                             {{ game.link.replace('https://', '') }}
                         </p>
                     </a>
@@ -154,21 +154,21 @@
                                  class="w-full h-[280px] object-contain object-center transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
-                            <h4 class="text-lg font-bold tracking-tight">Don't Starve Together: Upgradable Walking Cane
+                            <h4 class="text-xl font-bold tracking-tight">Don't Starve Together: Upgradable Walking Cane
                             </h4>
                             <div class="flex items-center gap-2 text-amber-600 font-semibold text-sm">
                                 <span>{{ t.dst.highlight }}</span>
                             </div>
                             <div class="flex flex-wrap gap-4 pt-1">
                                 <div v-for="stat in dstStats" :key="stat.key">
-                                    <div class="text-base font-bold">{{ formatNumber(stat.value) }}</div>
-                                    <div class="text-xs text-gray-500">{{ t.dst[stat.key] }}</div>
+                                    <div class="text-base md:text-lg font-bold">{{ formatNumber(stat.value) }}</div>
+                                    <div class="text-xs md:text-sm text-gray-500">{{ t.dst[stat.key] }}</div>
                                 </div>
                             </div>
                             <p class="text-gray-600 leading-relaxed text-sm pt-1">
                                 {{ t.dst.description }}
                             </p>
-                            <p class="text-blue-600 font-medium text-xs group-hover:underline">
+                            <p class="text-blue-600 font-medium text-xs md:text-sm group-hover:underline">
                                 steamcommunity.com
                             </p>
                         </div>
@@ -182,11 +182,11 @@
                                  class="w-full h-[280px] object-cover object-top transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
-                            <h4 class="text-lg font-bold tracking-tight">crashbone.com</h4>
+                            <h4 class="text-xl font-bold tracking-tight">crashbone.com</h4>
                             <p class="text-gray-600 leading-relaxed text-sm">
                                 {{ t.crashbone }}
                             </p>
-                            <p class="text-blue-600 font-medium text-xs group-hover:underline">
+                            <p class="text-blue-600 font-medium text-xs md:text-sm group-hover:underline">
                                 crashbone.com
                             </p>
                         </div>
@@ -200,7 +200,7 @@
                                  class="w-full h-[280px] object-cover object-center transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
-                            <h4 class="text-lg font-bold tracking-tight">mugladuruvidanjor.com</h4>
+                            <h4 class="text-xl font-bold tracking-tight">mugladuruvidanjor.com</h4>
                             <p class="text-gray-600 leading-relaxed text-sm">
                                 {{ t.duru }}
                             </p>
@@ -215,7 +215,7 @@
                                  class="w-full h-[280px] object-cover object-center transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
-                            <h4 class="text-lg font-bold tracking-tight">{{ t.aiEnv.title }}</h4>
+                            <h4 class="text-xl font-bold tracking-tight">{{ t.aiEnv.title }}</h4>
                             <p class="text-gray-600 leading-relaxed text-sm">
                                 {{ t.aiEnv.description }}
                             </p>
@@ -245,8 +245,8 @@
 
             <!-- CTA -->
             <section id="contact" class="max-w-4xl mx-auto px-6 py-32 text-center space-y-8">
-                <h2 class="text-4xl md:text-5xl font-bold tracking-tight">{{ t.contact.title }}</h2>
-                <p class="text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
+                <h2 class="text-4xl font-bold tracking-tight">{{ t.contact.title }}</h2>
+                <p class="text-base md:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
                     {{ t.contact.text }}
                 </p>
                 <div class="pt-4">
