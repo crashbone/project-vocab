@@ -1,5 +1,5 @@
 <template>
-    <div class="portfolio min-h-screen bg-[#FDFBF7] text-[#1A1A1A] font-sans selection:bg-rose-200">
+    <div class="portfolio overflow-x-clip min-h-screen bg-[#FDFBF7] text-[#1A1A1A] font-sans selection:bg-rose-200">
         <header
                 :class="[
                     'fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out',
@@ -7,8 +7,8 @@
                         ? 'py-4 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm'
                         : 'py-8 bg-transparent border-b border-transparent'
                 ]">
-            <nav class="max-w-6xl mx-auto px-4 sm:px-6 flex justify-between items-center gap-2 sm:gap-4">
-                <div class="flex flex-wrap min-w-0 gap-x-2.5 gap-y-1 sm:gap-8 text-[11px] sm:text-sm font-medium text-gray-600">
+            <nav class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:items-center sm:gap-4">
+                <div class="flex flex-wrap min-w-0 gap-x-3 gap-y-1 sm:gap-8 text-xs sm:text-sm font-medium text-gray-600">
                     <a href="#" class="hover:text-black transition-colors">{{ t.nav.home }}</a>
                     <a href="#services" class="hover:text-black transition-colors">{{ t.nav.services }}</a>
                     <a href="#projects" class="hover:text-black transition-colors">{{ t.nav.projects }}</a>
@@ -17,7 +17,7 @@
                 </div>
 
                 <!-- Sprachwahl -->
-                <div class="flex items-center gap-1 bg-white/90 border border-gray-200 rounded-full p-1 shadow-sm shrink-0">
+                <div class="self-end sm:self-auto flex items-center gap-1 bg-white/90 border border-gray-200 rounded-full p-1 shadow-sm shrink-0">
                     <button v-for="option in languages" :key="option.code"
                             type="button"
                             :aria-pressed="lang === option.code"
@@ -43,7 +43,7 @@
                             <rect width="5" height="1" y="1" fill="#DD0000" />
                             <rect width="5" height="1" y="2" fill="#FFCE00" />
                         </svg>
-                        <span class="hidden sm:inline">{{ option.code.toUpperCase() }}</span>
+                        <span>{{ option.code.toUpperCase() }}</span>
                     </button>
                 </div>
             </nav>
@@ -58,7 +58,7 @@
                         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                         <span class="text-sm font-medium text-green-800">{{ t.hero.badge }}</span>
                     </div>
-                    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">
+                    <h1 class="break-words text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">
                         Okan Akar<br />
                         <span class="text-gray-400">{{ t.hero.role }}</span>
                     </h1>
