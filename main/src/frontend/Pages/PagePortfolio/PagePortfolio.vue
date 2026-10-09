@@ -17,7 +17,10 @@
                 </div>
 
                 <!-- Sprachwahl -->
-                <div class="self-end sm:self-auto flex items-center gap-1 bg-white/90 border border-gray-200 rounded-full p-1 shadow-sm shrink-0">
+                <div :class="isScrolled
+                        ? 'max-h-0 -mb-3 opacity-0 -translate-y-6 pointer-events-none sm:max-h-16 sm:mb-0 sm:opacity-100 sm:translate-y-0 sm:pointer-events-auto'
+                        : 'max-h-16 opacity-100'"
+                     class="self-end sm:self-auto flex items-center gap-1 bg-white/90 border border-gray-200 rounded-full p-1 shadow-sm shrink-0 transition-all duration-300 ease-in-out">
                     <button v-for="option in languages" :key="option.code"
                             type="button"
                             :aria-pressed="lang === option.code"
