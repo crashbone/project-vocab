@@ -178,13 +178,9 @@ function setupTrigger(state: PopoverState) {
       document.addEventListener('mousedown', onClickOutside)
     }
 
-    const preventDefaultEvent = (ev: any) => {
-      ev.preventDefault() // Prevent text selection
-    }
-    el.addEventListener('touchstart', preventDefaultEvent, { passive: false })
-    el.addEventListener('touchmove', preventDefaultEvent, { passive: false })
-    el.addEventListener('touchend', preventDefaultEvent, { passive: false })
-    el.addEventListener('touchcancel', preventDefaultEvent, { passive: false })
+    // Metin secimi global 'user-select: none' ile kapali; touch olaylarinda preventDefault
+    // scroll'u engelledigi icin kullanilmaz. iOS'un uzun basma menusunu CSS ile kapat:
+    el.style.setProperty('-webkit-touch-callout', 'none')
     el.addEventListener('tap.long', handler)
 
       ; (state as any)._cleanup = () => {
