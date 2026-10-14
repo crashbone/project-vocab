@@ -183,8 +183,21 @@ function setupTrigger(state: PopoverState) {
     el.style.setProperty('-webkit-touch-callout', 'none')
     el.addEventListener('tap.long', handler)
 
+    // Fareyle sag tik da menuyu acar. Dokunmatikte uzun basma da 'contextmenu' tetikler;
+    // orada menu zaten 'tap.long' ile acildigi icin sadece fare icin ac.
+    let lastPointerType = ''
+    const onPointerDown = (e: PointerEvent) => { lastPointerType = e.pointerType }
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+      if (lastPointerType === 'mouse') handler()
+    }
+    el.addEventListener('pointerdown', onPointerDown)
+    el.addEventListener('contextmenu', onContextMenu)
+
       ; (state as any)._cleanup = () => {
         el.removeEventListener('tap.long', handler)
+        el.removeEventListener('pointerdown', onPointerDown)
+        el.removeEventListener('contextmenu', onContextMenu)
         hidePopover(state)
       }
   }
