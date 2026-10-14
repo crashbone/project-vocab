@@ -40,6 +40,8 @@ das Kind    Child`
             <template v-for="(word, index) in page!.wordModels" :key="index">
                 <ButtonX @click="wordClick(index)"
                          @[LONG_TAP_EVENT]="(e: Event) => onWordLongTap(e, index)"
+                         @pointerdown="(e: PointerEvent) => lastPointerType = e.pointerType"
+                         @contextmenu.prevent="(e: MouseEvent) => lastPointerType === 'mouse' && onWordLongTap(e, index)"
                          :shining_border_animation="word.marker"
                          class="size80px" :class="[
                              `wordMode${word.mode}`,
@@ -599,6 +601,9 @@ const exportWords = (type: 'marked' | 'selected' | 'all') => {
 // Uzun basmayi takip eden click (ayni hareketin parmak kaldirisi) kelimenin modunu degistirmesin.
 // Bir sonraki pointerdown bayragi temizler: sonraki normal tiklamalar etkilenmez.
 let suppressNextClick = false
+
+// Fareyle sag tik da menuyu acar; dokunmatikte uzun basma zaten 'tap.long' ile aciyor.
+let lastPointerType = ''
 
 const onWordLongTap = (event: Event, i: number) => {
     if (selectionMode.value || !page.value) return
