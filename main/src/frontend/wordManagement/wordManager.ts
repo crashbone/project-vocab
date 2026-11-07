@@ -13,6 +13,8 @@ export class WordManager {
   static _instance: WordManager | null = null;
   delimiters = ["\t", "    ", " | "]; // ["\t", "::", "//", "--", "__"],
   ARTIKELS = ["der", "die", "das"];
+  // Cince (CJK) karakter: 'karakter | okunus | anlam' satirlarini tanimak icin.
+  CJK_REGEX = /[㐀-鿿豈-﫿]/;
 
   private constructor() { }
 
@@ -27,7 +29,8 @@ export class WordManager {
   // setupWords'un tersi: modelleri tekrar ham metne cevirir (' | ' ayraci, satirlar '\n').
   formatWordsForExport(words: WordModel[]): string {
     return words.map(w => {
-      const left = (w.hasArtikel ? `${w.artikel} ${w.word}` : w.word).trim()
+      const word = (w.hasArtikel ? `${w.artikel} ${w.word}` : w.word).trim()
+      const left = w.pinyin ? `${word} | ${w.pinyin}` : word
       const right = (w.meaning ?? '').trim()
       return right === '' ? left : `${left} | ${right}`
     }).filter(line => line !== '').join('\n')
@@ -81,6 +84,15 @@ export class WordManager {
           word: lineArray[1],
           meaning: lineArray[2] ? lineArray[2] : "",
           context: lineArray[1],
+          mode: WordMode.SHORT,
+          marker: false
+        })
+      } else if (lineArray.length === 3 && this.CJK_REGEX.test(lineArray[0])) { // karakter | okunus | anlam
+        wordModel = new WordModel({
+          word: lineArray[0].trim(),
+          pinyin: lineArray[1].trim(),
+          meaning: lineArray[2].trim(),
+          context: lineArray[0].trim(),
           mode: WordMode.SHORT,
           marker: false
         })

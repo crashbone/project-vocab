@@ -7,6 +7,7 @@ export type WordModelConstructor = {
   marker: boolean,
   meaning: string,
   mode?: WordMode,
+  pinyin?: string,
   word: string
 }
 
@@ -16,6 +17,8 @@ export class WordModel {
   marker: boolean
   meaning: string
   mode: WordMode
+  // Cince okunus (sadece 'karakter | okunus | anlam' satirlarinda).
+  pinyin?: string
   word: string
 
   constructor(obj: WordModelConstructor) {
@@ -24,6 +27,7 @@ export class WordModel {
     this.marker = obj.marker
     this.meaning = obj.meaning
     this.mode = obj.mode || WordMode.SHORT
+    this.pinyin = obj.pinyin
     this.word = obj.word
   }
 

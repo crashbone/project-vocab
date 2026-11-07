@@ -30,13 +30,13 @@ das Kind    Child`
                           @click="enterEditMode" />
                     <SvgX class="pointer" url="/main/src/frontend/assets/svg/check.svg" :width="28" :height="28"
                           @click="enterSelectionMode" />
-                    <div class="pointer profile-icon">C</div>
+                    <div v-if="userInitial" class="pointer profile-icon" @click="openProfileMenu">{{ userInitial }}</div>
                 </template>
             </template>
         </PageWithWordsTopBar>
 
         <!-- CONTENT: Normal / Selection mode -->
-        <div v-if="!editMode" ref="listContainer" class="page-content-container-1">
+        <div v-if="!editMode" ref="listContainer" class="page-content-container-1" @scroll="saveState">
             <template v-for="(word, index) in page!.wordModels" :key="index">
                 <ButtonX @click="wordClick(index)"
                          @[LONG_TAP_EVENT]="(e: Event) => onWordLongTap(e, index)"
@@ -49,7 +49,14 @@ das Kind    Child`
                          ]"
                          :index="index">
                     <div class="button-content2" ref="wordRefs">
-                        <div class="text">{{ word.context }}</div>
+                        <div v-if="word.pinyin && word.mode !== WordMode.MEANING" class="text">
+                            <template v-if="pinyinParts(word)">
+                                <span v-for="(part, pi) in pinyinParts(word)" :key="pi" class="r"><span class="rt">{{ part.rt }}</span><span class="rb">{{ part.rb }}</span></span>
+                            </template>
+                            <span v-else class="r"><span class="rt">{{ word.pinyin }}</span><span class="rb">{{ word.word }}</span></span>
+                            <template v-if="word.mode === WordMode.LONG"> &gt; {{ word.meaning }}</template>
+                        </div>
+                        <div v-else class="text">{{ word.context }}</div>
                         <div class="bullets">
                             <div class="bullet" v-for="i in 3" :key="i"
                                  :class="{ active: word.mode === i - 1 }"></div>
@@ -60,7 +67,7 @@ das Kind    Child`
         </div>
 
         <!-- CONTENT: Edit mode - Standard -->
-        <div v-else-if="editViewMode === ViewMode.STANDARD" ref="listContainer" class="page-content-container-1">
+        <div v-else-if="editViewMode === ViewMode.STANDARD" ref="listContainer" class="page-content-container-1" @scroll="saveState">
             <template v-for="(word, index) in editWordObjects" :key="index">
                 <div class="row">
                     <ButtonX class="size80px" :class="{ 'edit-mode': word.w1EditMode }" :index="index"
@@ -239,6 +246,8 @@ import { applyMarkers, saveMarkers } from "@/wordManagement/markerStore";
 import { LONG_TAP_EVENT } from "@/directives/tap";
 import { sendUpdatePageRequest } from "@/wordManagement/updatePageRequest";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
+import { openProfileMenu } from "@/junk/profileMenu";
+import { savePageState, loadPageState, clearPageState, PAGE_STATE_KEYS } from "@/junk/pageStateService";
 
 enum ViewMode {
     STANDARD = 0,
@@ -277,6 +286,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+    // Uygulama icinde cikis: durum silinir (yenilemede unmount calismaz, durum kalir).
+    if (props.pageId) clearPageState(PAGE_STATE_KEYS.words(props.pageId), 'session')
     onStopRecording()
     clearTimeout(singleClickTimer)
 })
@@ -296,6 +307,78 @@ watch(page, (newPage) => {
         applyMarkers(newPage.id, newPage.wordModels)
     }
 }, { immediate: true })
+
+const userInitial = computed(() => {
+    const data = appStore.initialData
+    return data?.logged_in && data.user ? data.user.name[0] : ''
+})
+
+// Hece sayisi karakter sayisina esitse her hece kendi karakterinin ustunde; degilse null (tek parca).
+const pinyinParts = (word: WordModel) => {
+    const chars = Array.from(word.word)
+    const syllables = (word.pinyin ?? '').split(/\s+/).filter(x => x !== '')
+    if (syllables.length !== chars.length) return null
+    return chars.map((rb, i) => ({ rb, rt: syllables[i] }))
+}
+
+
+/* ==================
+ * === PAGE STATE ===
+ * ================== */
+// Sadece yenilemede geri gelir (sessionStorage): mod, kelime sirasi/modlari, scroll, edit durumu.
+type WordsPageState = {
+    modeWords: WordMode
+    words: { key: string, mode: WordMode }[]
+    scroll: number
+    editMode: boolean
+    editTitle: string
+    editWordObjects: { w1: string, w2: string }[]
+    editRawModeString: string
+    editViewMode: number
+}
+let stateRestored = false
+const wordKey = (w: WordModel) => `${w.artikel}|${w.word}|${w.meaning}`
+
+const saveState = () => {
+    if (!page.value || !stateRestored) return
+    savePageState(PAGE_STATE_KEYS.words(page.value.id), {
+        modeWords: page.value.modeWords,
+        words: page.value.wordModels.map(w => ({ key: wordKey(w), mode: w.mode })),
+        scroll: listContainer.value?.scrollTop ?? 0,
+        editMode: editMode.value,
+        editTitle: editTitle.value,
+        editWordObjects: editWordObjects.value.map(w => ({ w1: w.w1, w2: w.w2 })),
+        editRawModeString: editRawModeString.value,
+        editViewMode: editViewMode.value,
+    } satisfies WordsPageState, 'session')
+}
+
+const restoreState = (p: PageModel) => {
+    const state = loadPageState<WordsPageState>(PAGE_STATE_KEYS.words(p.id), 'session')
+    if (!state) return
+    // Kayitli siraya gore yeniden diz; eslesmeyen kelimeler sona.
+    const pool = [...p.wordModels]
+    const ordered: WordModel[] = []
+    state.words.forEach(({ key, mode }) => {
+        const idx = pool.findIndex(w => wordKey(w) === key)
+        if (idx === -1) return
+        const [w] = pool.splice(idx, 1)
+        w.switchMode(mode)
+        ordered.push(w)
+    })
+    p.wordModels.splice(0, p.wordModels.length, ...ordered, ...pool)
+    p.modeWords = state.modeWords
+    if (state.editMode) {
+        editTitle.value = state.editTitle
+        editWordObjects.value = state.editWordObjects.map(w => ({ w1: w.w1, w1EditMode: false, w2: w.w2, w2EditMode: false }))
+        editRawModeString.value = state.editRawModeString
+        editViewMode.value = state.editViewMode
+        editMode.value = true
+    }
+    nextTick().then(() => {
+        if (listContainer.value) listContainer.value.scrollTop = state.scroll
+    })
+}
 
 
 /* ======================
@@ -342,7 +425,9 @@ const enterEditMode = () => {
     scrollTopBeforeEdit = listContainer.value?.scrollTop ?? 0
     editTitle.value = page.value.name
     editWordObjects.value = page.value.wordModels.map(wm => {
-        const left = wm.hasArtikel ? `${wm.artikel} ${wm.word}` : wm.word
+        const word = wm.hasArtikel ? `${wm.artikel} ${wm.word}` : wm.word
+        // Okunus sol kutuda kalir ki kaydederken kaybolmasin ('karakter | okunus').
+        const left = wm.pinyin ? `${word} | ${wm.pinyin}` : word
         return {
             w1: left,
             w1EditMode: false,
@@ -397,7 +482,7 @@ const onEditViewModeChange = (vm: ViewMode) => {
     if (vm === ViewMode.STANDARD) {
         const wordModels = WordManager.instance.setupWords(editRawModeString.value)
         editWordObjects.value = wordModels.map(wm => ({
-            w1: wm.word, w1EditMode: false,
+            w1: wm.pinyin ? `${wm.word} | ${wm.pinyin}` : wm.word, w1EditMode: false,
             w2: wm.meaning, w2EditMode: false,
         }))
         onEditWordObjectsChanged()
@@ -436,6 +521,14 @@ const onEditWordObjectsChanged = () => {
 }
 
 watch(editWordObjects, () => onEditWordObjectsChanged(), { deep: true })
+// Ilk yuklemede kayitli durum bir kez geri konur (tanimlar yukarida hazir olsun diye burada).
+watch(page, (newPage) => {
+    if (newPage && !stateRestored) {
+        stateRestored = true
+        restoreState(newPage)
+    }
+}, { immediate: true })
+watch(() => [page.value?.wordModels, page.value?.modeWords, editMode.value, editTitle.value, editWordObjects.value, editRawModeString.value, editViewMode.value], saveState, { deep: true })
 
 // Uzun basma menusundeki Delete ve secim modundaki Delete ortak yolu.
 // Kalan kelimeler ekrandaki siralariyla yeniden yazilir (export ile ayni serilestirme).

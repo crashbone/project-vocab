@@ -159,3 +159,21 @@ input[type=text], textarea {
     }
   }
 }
+// Cince okunus karakterin ustunde (native <ruby> kart yuksekligine sayilmadigi icin span).
+.page.words .r {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: bottom;
+
+  .rt {
+    font-size: 18px;
+    line-height: 1.1;
+    white-space: nowrap;
+    padding: 0 2px;
+  }
+
+  .rb {
+    line-height: 1.2;
+  }
+}

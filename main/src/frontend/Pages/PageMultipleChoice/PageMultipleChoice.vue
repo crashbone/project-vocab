@@ -41,11 +41,46 @@ Capital of France? | Paris | Berlin | Rome
                             {{ DIFFICULTY_NAMES[d] }}
                         </div>
                     </div>
+                    <div class="random-toggle pointer" :class="{ active: random }" @click="toggleRandom">
+                        Random
+                    </div>
                 </div>
                 <div class="game-bar" :class="{ hidden: !inGame }">
-                    <div class="progress">{{ questionIndex + 1 }} / {{ questions.length }}</div>
-                    <div class="game-bar-button pointer" @click="gameState === 'paused' ? resumeGame() : pauseGame()">
+                    <div class="progress-nav">
+                        <div class="progress">{{ questionIndex + 1 }} / {{ questions.length }}</div>
+                        <template v-if="gameState === 'paused'">
+                            <div class="nav-button pointer" :class="{ disabled: questionIndex <= 0 }"
+                                 @click="goToQuestion(questionIndex - 1)">‹</div>
+                            <div class="nav-button pointer" :class="{ disabled: questionIndex >= questions.length - 1 }"
+                                 @click="goToQuestion(questionIndex + 1)">›</div>
+                        </template>
+                    </div>
+                    <div class="game-bar-button pointer"
+                         :class="{ disabled: gameState === 'feedback' || (gameState === 'paused' && currentAnswered) }"
+                         @click="gameState === 'paused' ? resumeGame() : pauseGame()">
                         {{ gameState === 'paused' ? 'Resume' : 'Pause' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- CUSTOM: ilk / son soru suresi. Custom secili ve oyun disindayken acilir. -->
+            <div class="custom-panel" :class="{ open: difficulty === Difficulty.CUSTOM && !inGame }">
+                <div class="custom-panel-inner">
+                    <div class="custom-row">
+                        <span class="custom-label">First</span>
+                        <input type="range" min="0" :max="CUSTOM_SLIDER_MAX" step="0.25"
+                               :value="Math.min(Number(customFirstInput) || 0, CUSTOM_SLIDER_MAX)"
+                               @input="onCustomSlider('first', ($event.target as HTMLInputElement).value)" />
+                        <input type="number" step="any" class="custom-number" :class="{ invalid: customInvalid }"
+                               v-model="customFirstInput" @input="applyCustomInputs" />
+                    </div>
+                    <div class="custom-row">
+                        <span class="custom-label">Last</span>
+                        <input type="range" min="0" :max="CUSTOM_SLIDER_MAX" step="0.25"
+                               :value="Math.min(Number(customLastInput) || 0, CUSTOM_SLIDER_MAX)"
+                               @input="onCustomSlider('last', ($event.target as HTMLInputElement).value)" />
+                        <input type="number" step="any" class="custom-number" :class="{ invalid: customInvalid }"
+                               v-model="customLastInput" @input="applyCustomInputs" />
                     </div>
                 </div>
             </div>
@@ -55,34 +90,39 @@ Capital of France? | Paris | Berlin | Rome
                     <div v-if="gameState === 'over'" class="result-strip" :class="endReason">
                         {{ resultText }}
                     </div>
-                    <div class="question-row">
-                        <!-- Kalan sure: halka soru basinda bos, sure bitince tam dolu (lineer). -->
-                        <div class="mc-timer">
-                            <svg viewBox="0 0 36 36">
-                                <circle class="mc-timer-track" cx="18" cy="18" :r="TIMER_RADIUS" />
-                                <circle class="mc-timer-progress" cx="18" cy="18" :r="TIMER_RADIUS"
-                                        :stroke-dasharray="TIMER_CIRCUMFERENCE"
-                                        :stroke-dashoffset="TIMER_CIRCUMFERENCE * (1 - timerProgress)" />
-                            </svg>
-                            <div class="mc-timer-text">{{ remainingText }}</div>
-                        </div>
-                        <div class="question">{{ current.question }}</div>
-                    </div>
-                    <div class="answers">
-                        <ButtonX v-for="(answer, i) in current.answers" :key="`${questionIndex}-${i}`"
-                                 class="size80px"
-                                 :class="{
-                                     correct: gameState === 'over' && i === current.correctIndex,
-                                     wrong: gameState === 'over' && i === pickedIndex && i !== current.correctIndex,
-                                 }"
-                                 :index="i"
-                                 :shining_border_animation="false"
-                                 @click="onAnswerClick(i)">
-                            <div class="button-content2">
-                                <div class="text">{{ answer }}</div>
+                    <Transition name="mc-question" mode="out-in">
+                        <div class="question-block" :key="questionIndex">
+                            <div class="question-row">
+                                <!-- Kalan sure: halka soru basinda bos, sure bitince tam dolu (lineer). -->
+                                <div class="mc-timer">
+                                    <svg viewBox="0 0 36 36">
+                                        <circle class="mc-timer-track" cx="18" cy="18" :r="TIMER_RADIUS" />
+                                        <circle class="mc-timer-progress" cx="18" cy="18" :r="TIMER_RADIUS"
+                                                :stroke-dasharray="TIMER_CIRCUMFERENCE"
+                                                :stroke-dashoffset="TIMER_CIRCUMFERENCE * (1 - timerProgress)" />
+                                    </svg>
+                                    <div class="mc-timer-text">{{ remainingText }}</div>
+                                </div>
+                                <div class="question">{{ current.question }}</div>
                             </div>
-                        </ButtonX>
-                    </div>
+                            <div class="answers">
+                                <ButtonX v-for="(answer, i) in current.answers" :key="`${questionIndex}-${i}`"
+                                         class="size80px"
+                                         :class="{
+                                             correct: showCorrect && i === current.correctIndex,
+                                             wrong: showPicked && i === pickedIndex && i !== current.correctIndex,
+                                             picked: showPicked && i === pickedIndex,
+                                         }"
+                                         :index="i"
+                                         :shining_border_animation="false"
+                                         @click="onAnswerClick(i)">
+                                    <div class="button-content2">
+                                        <div class="text">{{ answer }}</div>
+                                    </div>
+                                </ButtonX>
+                            </div>
+                        </div>
+                    </Transition>
                     <div v-if="gameState === 'over'" class="play-again pointer" @click="startGame">
                         <div class="play-triangle"></div>
                         Play again
@@ -91,8 +131,10 @@ Capital of France? | Paris | Berlin | Rome
                 <div v-else-if="!hasQuestions" class="question">This page has no questions.</div>
 
                 <!-- Baslamadan once ve pause'da sorular kaplanir (pause'da soru okunup dusunulmesin).
+                     Cevaplanmis soruya geri gidilince de kaplanmaz (dogru cevap salt goruntu).
                      Oyun bitince kaplanmaz: dogru / yanlis renkleri ve sonuc seridi gorunur kalir. -->
-                <div v-if="(gameState === 'idle' || gameState === 'paused') && hasQuestions" class="play-overlay pointer"
+                <div v-if="(gameState === 'idle' || (gameState === 'paused' && !currentAnswered)) && hasQuestions"
+                     class="play-overlay pointer"
                      @click="gameState === 'paused' ? resumeGame() : startGame()">
                     <div class="play-button">
                         <div class="play-triangle"></div>
@@ -137,7 +179,10 @@ import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponen
 import {
     Difficulty, DIFFICULTY_NAMES, DIFFICULTY_LOCAL_STORAGE_KEY,
     getQuestionDuration, loadDifficulty,
+    CUSTOM_SLIDER_MAX, isValidCustomDuration, loadCustomDuration, saveCustomDuration,
+    loadRandom, saveRandom, ANSWER_FEEDBACK_MS,
 } from "@/wordManagement/Difficulty";
+import { savePageState, loadPageState, clearPageState, PAGE_STATE_KEYS } from "@/junk/pageStateService";
 import { TimeSpentHandler } from "@/junk/TimeSpentHandler";
 import { addOrUpdate } from "@/junk/localStorageHandler";
 import { toDashboard } from "@/junk/router";
@@ -146,7 +191,7 @@ import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWit
 
 const TIMER_RADIUS = 16
 const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS
-const DIFFICULTIES = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD, Difficulty.BRUTAL]
+const DIFFICULTIES = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD, Difficulty.BRUTAL, Difficulty.CUSTOM]
 
 const appStore = useAppStore()
 const props = defineProps({
@@ -168,16 +213,56 @@ const page = computed((): PageModel | undefined => {
 
 const difficulty = ref(loadDifficulty())
 
+// Baslamadan once gosterilen ilk soru suresi guncel ayara gore yenilenir.
+const refreshIdleDuration = () => {
+    if (gameState.value === 'idle') {
+        questionDuration.value = getQuestionDuration(0, questions.value.length, difficulty.value) * 1000
+    }
+}
+
 // Secici sadece oyun disinda gorunur; yeni zorluk bir sonraki Start'ta gecerli olur.
 const setDifficulty = (d: Difficulty) => {
     difficulty.value = d
-    // Baslamadan once gosterilen ilk soru suresi yeni zorluga gore guncellenir.
-    if (gameState.value === 'idle') {
-        questionDuration.value = getQuestionDuration(0, questions.value.length, d) * 1000
-    }
+    refreshIdleDuration()
     try {
         addOrUpdate(DIFFICULTY_LOCAL_STORAGE_KEY, String(d))
     } catch { /* localStorage erisilemiyorsa sadece bu oturumda gecerli */ }
+}
+
+// CUSTOM: input'taki deger esastir; slider en fazla CUSTOM_SLIDER_MAX gosterir.
+const initialCustom = loadCustomDuration()
+const customFirstInput = ref<string | number>(initialCustom.first)
+const customLastInput = ref<string | number>(initialCustom.last)
+const customInvalid = ref(false)
+
+// Gecersiz giris kaydedilmez, son gecerli deger kalir; input kirmizi gosterilir.
+const applyCustomInputs = () => {
+    const c = { first: Number(customFirstInput.value), last: Number(customLastInput.value) }
+    customInvalid.value = String(customFirstInput.value) === '' || String(customLastInput.value) === ''
+        || !isValidCustomDuration(c)
+    if (customInvalid.value) return
+    saveCustomDuration(c)
+    refreshIdleDuration()
+}
+
+const onCustomSlider = (which: 'first' | 'last', value: string) => {
+    if (which === 'first') customFirstInput.value = Number(value)
+    else customLastInput.value = Number(value)
+    applyCustomInputs()
+}
+
+
+/* ==============
+ * === RANDOM ===
+ * ============== */
+
+const random = ref(loadRandom())
+
+const toggleRandom = () => {
+    if (inGame.value) return
+    random.value = !random.value
+    saveRandom(random.value)
+    prepareGame()
 }
 
 
@@ -185,25 +270,42 @@ const setDifficulty = (d: Difficulty) => {
  * === GAME ===
  * ============ */
 
+type GameState = 'idle' | 'playing' | 'paused' | 'feedback' | 'over'
+type EndReason = 'wrong' | 'timeout' | 'done'
+
 const questions = ref<MultipleChoiceQuestion[]>([])
 const questionIndex = ref(0)
 // idle: sayfa acildi, Start'a (▶) basilmadi. Quiz kendiliginden baslamaz.
-const gameState = ref<'idle' | 'playing' | 'paused' | 'over'>('idle')
-// Tur suruyor (oynaniyor ya da duraklatildi): zorluk ve edit kapali.
-const inGame = computed(() => gameState.value === 'playing' || gameState.value === 'paused')
+// feedback: cevap verildi, dogru / yanlis animasyonu gosteriliyor (timer durmus, tiklama kilitli).
+const gameState = ref<GameState>('idle')
+// Tur suruyor: zorluk, random ve edit kapali.
+const inGame = computed(() =>
+    gameState.value === 'playing' || gameState.value === 'paused' || gameState.value === 'feedback')
 const pickedIndex = ref(-1)
-const endReason = ref<'wrong' | 'timeout' | 'done'>('done')
+const endReason = ref<EndReason>('done')
+// Soru basina: dogru bilindi mi, ve harcanan sure (ms; 0 = hic baslamadi, tam sure).
+const answered = ref<boolean[]>([])
+const elapsedPerQuestion = ref<number[]>([])
+let feedbackTimeout: number | undefined
 
-// Yanlis ya da sure bitti: o soruya kadar olanlar dogru bilindi.
+const answeredCount = computed(() => answered.value.filter(Boolean).length)
+
 const resultText = computed(() => {
     const total = questions.value.length
     if (endReason.value === 'done') return `✓ ${total} / ${total} correct`
     const label = endReason.value === 'wrong' ? '✗ Wrong' : "⏱ Time's up"
-    return `${label} · ${questionIndex.value} / ${total} correct`
+    return `${label} · ${answeredCount.value} / ${total} correct`
 })
 
 const current = computed(() => questions.value[questionIndex.value])
+const currentAnswered = computed(() => answered.value[questionIndex.value] === true)
 const hasQuestions = computed(() => (page.value?.questions.length ?? 0) > 0)
+
+// Dogru sik: feedback / over'da ve cevaplanmis soruya geri gidilince (salt goruntu) yesil.
+const showCorrect = computed(() =>
+    gameState.value === 'over' || gameState.value === 'feedback'
+    || (gameState.value === 'paused' && currentAnswered.value))
+const showPicked = computed(() => gameState.value === 'over' || gameState.value === 'feedback')
 
 // Aktif sorunun suresi ve gecen zaman (ms).
 const questionDuration = ref(0)
@@ -219,23 +321,34 @@ const remainingText = computed(() => {
     return (Math.max(0, questionDuration.value - elapsed.value) / 1000).toFixed(1)
 })
 
-// Sorular ve her sorunun siklari karistirilir; dogru sikkin yeni yeri correctIndex'e yazilir.
+// Siklar her zaman karistirilir (veride dogru sik hep ilk); soru sirasi sadece Random aciksa.
 const buildShuffledQuestions = (source: MultipleChoiceQuestion[]): MultipleChoiceQuestion[] => {
-    return shuffle(source.map(q => {
+    const built = source.map(q => {
         const answers = shuffle(q.answers.map((text, i) => ({ text, correct: i === q.correctIndex })))
         return {
             question: q.question,
             answers: answers.map(a => a.text),
             correctIndex: answers.findIndex(a => a.correct),
         }
-    }))
+    })
+    return random.value ? shuffle(built) : built
 }
 
-// Yeni karisik tur hazirlanir ve ilk soru, sayac dolmadan, ▶'nun arkasinda soluk gorunur.
+const clearFeedbackTimeout = () => {
+    if (feedbackTimeout !== undefined) {
+        clearTimeout(feedbackTimeout)
+        feedbackTimeout = undefined
+    }
+}
+
+// Yeni tur hazirlanir ve ilk soru, sayac dolmadan, ▶'nun arkasinda soluk gorunur.
 const prepareGame = () => {
     if (!page.value) return
     stopTimer()
+    clearFeedbackTimeout()
     questions.value = buildShuffledQuestions(page.value.questions)
+    answered.value = questions.value.map(() => false)
+    elapsedPerQuestion.value = questions.value.map(() => 0)
     questionIndex.value = 0
     pickedIndex.value = -1
     questionDuration.value = getQuestionDuration(0, questions.value.length, difficulty.value) * 1000
@@ -251,12 +364,17 @@ const startGame = () => {
     startQuestion(0)
 }
 
-const startQuestion = (i: number) => {
+// Soru, daha once harcanan sure varsa kaldigi yerden gosterilir (atlanip donulen soru).
+const showQuestion = (i: number) => {
     questionIndex.value = i
     pickedIndex.value = -1
     questionDuration.value = getQuestionDuration(i, questions.value.length, difficulty.value) * 1000
-    elapsed.value = 0
-    questionStartedAt = performance.now()
+    elapsed.value = elapsedPerQuestion.value[i] ?? 0
+}
+
+const startQuestion = (i: number) => {
+    showQuestion(i)
+    questionStartedAt = performance.now() - elapsed.value
     stopTimer()
     rafId = requestAnimationFrame(tick)
 }
@@ -265,7 +383,7 @@ const tick = (now: number) => {
     elapsed.value = now - questionStartedAt
     if (elapsed.value >= questionDuration.value) {
         elapsed.value = questionDuration.value
-        endGame('timeout')
+        showFeedback(-1)
         return
     }
     rafId = requestAnimationFrame(tick)
@@ -278,39 +396,126 @@ const stopTimer = () => {
     }
 }
 
-const endGame = (reason: 'wrong' | 'timeout' | 'done') => {
+const endGame = (reason: EndReason) => {
     stopTimer()
+    clearFeedbackTimeout()
     endReason.value = reason
     gameState.value = 'over'
+}
+
+// Siradaki cevaplanmamis soru; sonda geride atlanmis soru varsa basa sarar. Yoksa -1.
+const nextUnanswered = (from: number): number => {
+    const n = questions.value.length
+    for (let k = 1; k <= n; k++) {
+        const i = (from + k) % n
+        if (!answered.value[i]) return i
+    }
+    return -1
 }
 
 // Gecen sure (elapsed) korunur; devamda baslangic ani o kadar geri alinir.
 const pauseGame = () => {
     if (gameState.value !== 'playing') return
     stopTimer()
+    elapsedPerQuestion.value[questionIndex.value] = elapsed.value
     gameState.value = 'paused'
 }
 
 const resumeGame = () => {
-    if (gameState.value !== 'paused') return
+    if (gameState.value !== 'paused' || currentAnswered.value) return
     questionStartedAt = performance.now() - elapsed.value
     gameState.value = 'playing'
     rafId = requestAnimationFrame(tick)
 }
 
+// Sadece paused'da; gezinince paused kalinir.
+const goToQuestion = (i: number) => {
+    if (gameState.value !== 'paused' || i < 0 || i >= questions.value.length) return
+    elapsedPerQuestion.value[questionIndex.value] = elapsed.value
+    showQuestion(i)
+}
+
+// picked = -1: sure bitti. Timer durur, ANSWER_FEEDBACK_MS boyunca sonuc gosterilir.
+const showFeedback = (picked: number) => {
+    if (!current.value) return
+    stopTimer()
+    pickedIndex.value = picked
+    gameState.value = 'feedback'
+    const correct = picked === current.value.correctIndex
+    feedbackTimeout = window.setTimeout(() => {
+        feedbackTimeout = undefined
+        if (!correct) {
+            endGame(picked === -1 ? 'timeout' : 'wrong')
+            return
+        }
+        answered.value[questionIndex.value] = true
+        const next = nextUnanswered(questionIndex.value)
+        if (next === -1) {
+            endGame('done')
+            return
+        }
+        gameState.value = 'playing'
+        startQuestion(next)
+    }, ANSWER_FEEDBACK_MS)
+}
+
 const onAnswerClick = (i: number) => {
     if (gameState.value !== 'playing' || !current.value) return
-    pickedIndex.value = i
-    if (i !== current.value.correctIndex) {
-        endGame('wrong')
-        return
-    }
-    if (questionIndex.value + 1 >= questions.value.length) {
-        endGame('done')
-        return
-    }
-    startQuestion(questionIndex.value + 1)
+    showFeedback(i)
 }
+
+
+/* =======================================
+ * === OYUN DURUMU (sadece yenilemede) ===
+ * ======================================= */
+
+interface SavedGameState {
+    questions: MultipleChoiceQuestion[]
+    questionIndex: number
+    answered: boolean[]
+    elapsedPerQuestion: number[]
+    gameState: GameState
+    endReason: EndReason
+    pickedIndex: number
+}
+
+const gameStateKey = () => PAGE_STATE_KEYS.multipleChoice(props.pageId ?? '')
+
+// Oynanirken / feedback'te kaydedilen durum paused'dur: yenilemeden sonra oyun paused acilir.
+const saveGameState = () => {
+    if (gameState.value === 'idle') {
+        clearPageState(gameStateKey(), 'session')
+        return
+    }
+    const elapsedCopy = [...elapsedPerQuestion.value]
+    if (gameState.value !== 'over') elapsedCopy[questionIndex.value] = elapsed.value
+    const state: SavedGameState = {
+        questions: questions.value,
+        questionIndex: questionIndex.value,
+        answered: answered.value,
+        elapsedPerQuestion: elapsedCopy,
+        gameState: gameState.value === 'over' ? 'over' : 'paused',
+        endReason: endReason.value,
+        pickedIndex: gameState.value === 'over' ? pickedIndex.value : -1,
+    }
+    savePageState(gameStateKey(), state, 'session')
+}
+
+// Kayitli tur bu sayfanin guncel soru sayisiyla uyusuyorsa geri yuklenir.
+const restoreGameState = (): boolean => {
+    const s = loadPageState<SavedGameState>(gameStateKey(), 'session')
+    if (!s || !page.value || s.questions?.length !== page.value.questions.length) return false
+    questions.value = s.questions
+    answered.value = s.answered
+    elapsedPerQuestion.value = s.elapsedPerQuestion
+    showQuestion(s.questionIndex)
+    pickedIndex.value = s.pickedIndex
+    endReason.value = s.endReason
+    gameState.value = s.gameState
+    return true
+}
+
+watch([questions, questionIndex, answered, gameState, endReason], saveGameState, { deep: true })
 
 const title = ref('')
 
@@ -319,6 +524,7 @@ const title = ref('')
 watch(page, (newPage, oldPage) => {
     if (!newPage || newPage === oldPage) return
     title.value = newPage.name
+    if (!oldPage && restoreGameState()) return
     if (!inGame.value) prepareGame()
 }, { immediate: true })
 
@@ -397,10 +603,16 @@ onMounted(() => {
         }
     }, 5000);
     TimeSpentHandler.instance.startRecording(`page${props.pageId}`)
+    // Yenilemede unmount calismaz; oynanirken gecen sure burada kaydedilir.
+    window.addEventListener('pagehide', saveGameState)
 })
 
 onBeforeUnmount(() => {
     stopTimer()
+    clearFeedbackTimeout()
+    window.removeEventListener('pagehide', saveGameState)
+    // Uygulama icinde sayfadan cikinca tur temizlenir; tekrar giriste baslangictan acilir.
+    clearPageState(gameStateKey(), 'session')
     TimeSpentHandler.instance.stopRecording(`page${props.pageId}`)
 })
 </script>

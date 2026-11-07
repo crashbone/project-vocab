@@ -4,6 +4,7 @@
         <PageWithWordsTopBar
                              :title="title"
                              :titleAdjustable="true"
+                             :backHandler="onBackClick"
                              @update:title="title = $event">
             <template v-if="isMultipleChoice" #right>
                 <SvgX v-tooltip="{
@@ -39,7 +40,7 @@ das Kind    Child`
         <!----------------------------------------------------------------->
 
         <!-- CONTENT: Standard -->
-        <div v-if="viewMode === ViewMode.STANDARD" class="page-content-container-1">
+        <div v-if="viewMode === ViewMode.STANDARD" ref="content" class="page-content-container-1" @scroll="saveDraft">
             <template v-for="(word, index) in wordObjects" :key="index">
                 <div class="row">
                     <ButtonX class="size80px" :class="{ 'edit-mode': word.w1EditMode }" :index="index"
@@ -75,7 +76,7 @@ das Kind    Child`
         </div>
 
         <!-- CONTENT: Raw -->
-        <div v-else-if="viewMode === ViewMode.RAW" class="page-content-container-1">
+        <div v-else-if="viewMode === ViewMode.RAW" ref="content" class="page-content-container-1" @scroll="saveDraft">
             <textarea v-model="rawModeString" class="raw-mode" />
         </div>
 
@@ -102,12 +103,16 @@ das Kind    Child`
 import router from "@/router";
 import { useAppStore } from "@/stores/appStore";
 import { sendAddNewPageRequest, type PostRequestDataType } from "@/wordManagement/addNewPageRequest";
-import { computed, nextTick, ref, watch, type Ref } from "vue";
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch, type Ref } from "vue";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 import { ViewMode } from "./ViewMode";
 import { WordManager } from "@/wordManagement/wordManager";
 import { PageType } from "@/wordManagement/PageType";
 import { useRoute } from "vue-router";
+import { toDashboard } from "@/junk/router";
+import { savePageState, loadPageState, clearPageState, PAGE_STATE_KEYS } from "@/junk/pageStateService";
+import type { AddPageDraft } from "./addPageDraft";
+import { showConfirmationPopup, closeConfirmationPopup } from "@/NonPageComponents/ConfirmationPopup/confirmationPopup";
 
 const appStore = useAppStore()
 
@@ -126,7 +131,8 @@ type BottomBarObj = {
 
 
 // Multiple choice sayfalari (admin) simdilik sadece raw view ile olusturulur.
-const isMultipleChoice = useRoute().query.type === PageType.MULTIPLE_CHOICE
+const route = useRoute()
+const isMultipleChoice = route.query.type === PageType.MULTIPLE_CHOICE
 
 const title = ref(isMultipleChoice ? 'New Multiple Choice' : 'New Page')
 const wordObjects = ref([{
@@ -139,6 +145,56 @@ const wordInputs1: Ref<HTMLElement[]> = ref([]);
 const wordInputs2: Ref<HTMLElement[]> = ref([]);
 const rawModeString = ref('');
 const viewMode = ref(isMultipleChoice ? ViewMode.RAW : ViewMode.STANDARD)
+const content = useTemplateRef<HTMLElement>('content')
+
+
+/* =============
+ * === DRAFT ===
+ * ============= */
+// Tek draft (localStorage). Dashboard menusunden "?draft=1" ile acilinca geri yuklenir.
+const draft = route.query.draft ? loadPageState<AddPageDraft>(PAGE_STATE_KEYS.draft, 'local') : null
+if (draft) {
+    title.value = draft.title
+    wordObjects.value = draft.wordObjects.map(w => ({ w1: w.w1, w1EditMode: false, w2: w.w2, w2EditMode: false }))
+    rawModeString.value = draft.rawModeString
+    viewMode.value = draft.viewMode
+}
+onMounted(() => {
+    if (draft) nextTick().then(() => content.value?.scrollTo(0, draft.scroll))
+})
+
+const isEmpty = () => rawModeString.value.trim() === '' && wordObjects.value.every(w => w.w1 === '' && w.w2 === '')
+
+const saveDraft = () => {
+    if (isEmpty()) return
+    savePageState(PAGE_STATE_KEYS.draft, {
+        title: title.value,
+        wordObjects: wordObjects.value.map(w => ({ w1: w.w1, w2: w.w2 })),
+        rawModeString: rawModeString.value,
+        viewMode: viewMode.value,
+        type: isMultipleChoice ? PageType.MULTIPLE_CHOICE : PageType.PAGE,
+        scroll: content.value?.scrollTop ?? 0,
+    } satisfies AddPageDraft, 'local')
+}
+watch([title, wordObjects, rawModeString, viewMode], saveDraft, { deep: true })
+
+const clearDraft = () => clearPageState(PAGE_STATE_KEYS.draft, 'local')
+
+// Geri: icerik bos ise sormadan cik (draft silinir), degilse sor.
+const onBackClick = () => {
+    if (isEmpty()) {
+        clearDraft()
+        toDashboard()
+        return
+    }
+    showConfirmationPopup({
+        title: 'Save as draft?',
+        buttons: [
+            { name: 'Delete', click: () => { closeConfirmationPopup(); clearDraft(); toDashboard() } },
+            { name: 'Save', click: () => { closeConfirmationPopup(); saveDraft(); toDashboard() } },
+        ],
+    })
+}
 
 const bottomBarButtons = computed((): BottomBarObj[][] => {
     return [
@@ -261,7 +317,7 @@ const onViewModeChange = (vm: ViewMode) => {
         const wordModels = WordManager.instance.setupWords(rawModeString.value);
         const addPageWordObjects = wordModels.map(wm => {
             return {
-                w1: wm.word,
+                w1: wm.pinyin ? `${wm.word} | ${wm.pinyin}` : wm.word,
                 w1EditMode: false,
                 w2: wm.meaning,
                 w2EditMode: false,
@@ -297,6 +353,7 @@ const onSaveClick = () => {
     } as PostRequestDataType;
     sendAddNewPageRequest(requestData).then(async (res) => {
         if (res.success) {
+            clearDraft()
             await appStore.loadPages()
             router.push({ name: 'dashboard' })
         }
