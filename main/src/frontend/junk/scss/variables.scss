@@ -1,3 +1,9 @@
 $unusableSpaceTop: 55px;
 $unusableSpaceBottom: 72px;
 $paddingTop: 24px;
+
+// Font olcegi (tasarim dokumani): kelime 20, baslik 16, buton/footer 13.
+// Yeni font boyu yazma, bunlardan birini kullan. Istisnalar: tooltip, Landing, Portfolio, Cince okunus.
+$font-size-word: 20px;
+$font-size-title: 16px;
+$font-size-small: 13px;

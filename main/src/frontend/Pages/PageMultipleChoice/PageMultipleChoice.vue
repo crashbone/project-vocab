@@ -1,11 +1,11 @@
 <template>
     <div v-if="!page"></div>
-    <div v-else class="app-frame page words multiple-choice" :class="{ 'edit-mode-active': editMode }">
+    <div v-else class="app-frame page words multiple-choice" :class="{ 'edit-mode-active': editMode, 'two-row-bar': !editMode && !inGame }">
         <!-- TOP BAR: baslik sadece edit modunda degisir; edit'e sadece oyun disinda (idle / over) girilir. -->
         <PageWithWordsTopBar
                              :title="editMode ? editTitle : title"
                              :titleAdjustable="editMode"
-                             :hideBack="editMode"
+                             :backDisabled="inGame || editMode"
                              @update:title="editTitle = $event">
             <template v-if="editMode" #right>
                 <SvgX v-tooltip="{
@@ -18,73 +18,39 @@ Capital of France? | Paris | Berlin | Rome
 2 + 2 = ? | 4 | 3 | 5 | 22`
                 }" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
             </template>
-            <template v-else-if="!inGame" #right>
+            <template v-else-if="!inGame || gameState === 'paused'" #right>
                 <SvgX class="pointer" url="/main/src/frontend/assets/svg/pencil.svg" :width="22" :height="22"
                       @click="enterEditMode" />
             </template>
         </PageWithWordsTopBar>
 
-        <!-- CONTENT: Edit mode (sadece Raw, AddPage'deki gibi) -->
-        <div v-if="editMode" class="page-content-container-1">
+        <!-- CONTENT: Edit mode - Raw (AddPage'deki gibi) -->
+        <div v-if="editMode && editRaw" class="page-content-container-1">
             <textarea v-model="editRawModeString" class="raw-mode" />
+        </div>
+
+        <!-- CONTENT: Edit mode - tek soru, quiz gorunumuyle; her alan tiklaninca duzenlenir (PageWords gibi). -->
+        <div v-else-if="editMode" class="page-content-container-1">
+            <div class="quiz-area">
+                <div v-if="editCurrent" class="question-block">
+                    <EditableCard class="edit-question" :index="0"
+                                  v-model="editCurrent.question"
+                                  :editing="editingField === -1" @update:editing="setFieldEditing(-1, $event)" />
+                    <div class="answers">
+                        <!-- Formattaki gibi ilk sik dogru cevaptir. Sondaki bos kart yeni sik ekler. -->
+                        <EditableCard v-for="(_, i) in editCurrent.answers" :key="`${editIndex}-${i}`"
+                                      :class="{ correct: i === 0 }" :index="i"
+                                      v-model="editCurrent.answers[i]"
+                                      :editing="editingField === i" @update:editing="setFieldEditing(i, $event)" />
+                    </div>
+                </div>
+                <div v-else class="question">This page has no questions.</div>
+            </div>
+            <QuestionNav class="content-nav" :index="editIndex" :total="editTotal" allowNew @go="goToEditQuestion" />
         </div>
 
         <!-- CONTENT -->
         <div v-else class="page-content-container-1">
-            <!-- Ayni yeri paylasirlar: oyun disinda zorluk secimi, oyunda solda ilerleme + sagda Pause. -->
-            <div class="top-controls">
-                <div class="difficulty-bar" :class="{ hidden: inGame }">
-                    <div class="segmented-control">
-                        <div v-for="d in DIFFICULTIES" :key="d"
-                             class="segment pointer" :class="{ active: difficulty === d }"
-                             @click="setDifficulty(d)">
-                            {{ DIFFICULTY_NAMES[d] }}
-                        </div>
-                    </div>
-                    <div class="random-toggle pointer" :class="{ active: random }" @click="toggleRandom">
-                        Random
-                    </div>
-                </div>
-                <div class="game-bar" :class="{ hidden: !inGame }">
-                    <div class="progress-nav">
-                        <div class="progress">{{ questionIndex + 1 }} / {{ questions.length }}</div>
-                        <template v-if="gameState === 'paused'">
-                            <div class="nav-button pointer" :class="{ disabled: questionIndex <= 0 }"
-                                 @click="goToQuestion(questionIndex - 1)">‹</div>
-                            <div class="nav-button pointer" :class="{ disabled: questionIndex >= questions.length - 1 }"
-                                 @click="goToQuestion(questionIndex + 1)">›</div>
-                        </template>
-                    </div>
-                    <div class="game-bar-button pointer"
-                         :class="{ disabled: gameState === 'feedback' || (gameState === 'paused' && currentAnswered) }"
-                         @click="gameState === 'paused' ? resumeGame() : pauseGame()">
-                        {{ gameState === 'paused' ? 'Resume' : 'Pause' }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- CUSTOM: ilk / son soru suresi. Custom secili ve oyun disindayken acilir. -->
-            <div class="custom-panel" :class="{ open: difficulty === Difficulty.CUSTOM && !inGame }">
-                <div class="custom-panel-inner">
-                    <div class="custom-row">
-                        <span class="custom-label">First</span>
-                        <input type="range" min="0" :max="CUSTOM_SLIDER_MAX" step="0.25"
-                               :value="Math.min(Number(customFirstInput) || 0, CUSTOM_SLIDER_MAX)"
-                               @input="onCustomSlider('first', ($event.target as HTMLInputElement).value)" />
-                        <input type="number" step="any" class="custom-number" :class="{ invalid: customInvalid }"
-                               v-model="customFirstInput" @input="applyCustomInputs" />
-                    </div>
-                    <div class="custom-row">
-                        <span class="custom-label">Last</span>
-                        <input type="range" min="0" :max="CUSTOM_SLIDER_MAX" step="0.25"
-                               :value="Math.min(Number(customLastInput) || 0, CUSTOM_SLIDER_MAX)"
-                               @input="onCustomSlider('last', ($event.target as HTMLInputElement).value)" />
-                        <input type="number" step="any" class="custom-number" :class="{ invalid: customInvalid }"
-                               v-model="customLastInput" @input="applyCustomInputs" />
-                    </div>
-                </div>
-            </div>
-
             <div class="quiz-area">
                 <template v-if="current">
                     <div v-if="gameState === 'over'" class="result-strip" :class="endReason">
@@ -93,14 +59,10 @@ Capital of France? | Paris | Berlin | Rome
                     <Transition name="mc-question" mode="out-in">
                         <div class="question-block" :key="questionIndex">
                             <div class="question-row">
-                                <!-- Kalan sure: halka soru basinda bos, sure bitince tam dolu (lineer). -->
+                                <!-- Kalan sure: halka soru basinda tam dolu, sure bitince bos (lineer). -->
+                                <!-- prototype.html #6 (kalin): conic-gradient halka, ic kisim maskeyle bos -->
                                 <div class="mc-timer">
-                                    <svg viewBox="0 0 36 36">
-                                        <circle class="mc-timer-track" cx="18" cy="18" :r="TIMER_RADIUS" />
-                                        <circle class="mc-timer-progress" cx="18" cy="18" :r="TIMER_RADIUS"
-                                                :stroke-dasharray="TIMER_CIRCUMFERENCE"
-                                                :stroke-dashoffset="TIMER_CIRCUMFERENCE * (1 - timerProgress)" />
-                                    </svg>
+                                    <div class="mc-timer-ring" :style="{ '--p': (1 - timerProgress) * 100 }"></div>
                                     <div class="mc-timer-text">{{ remainingText }}</div>
                                 </div>
                                 <div class="question">{{ current.question }}</div>
@@ -130,47 +92,73 @@ Capital of France? | Paris | Berlin | Rome
                 </template>
                 <div v-else-if="!hasQuestions" class="question">This page has no questions.</div>
 
-                <!-- Baslamadan once ve pause'da sorular kaplanir (pause'da soru okunup dusunulmesin).
-                     Cevaplanmis soruya geri gidilince de kaplanmaz (dogru cevap salt goruntu).
-                     Oyun bitince kaplanmaz: dogru / yanlis renkleri ve sonuc seridi gorunur kalir. -->
-                <div v-if="(gameState === 'idle' || (gameState === 'paused' && !currentAnswered)) && hasQuestions"
-                     class="play-overlay pointer"
-                     @click="gameState === 'paused' ? resumeGame() : startGame()">
-                    <div class="play-button">
-                        <div class="play-triangle"></div>
+            </div>
+            <!-- Gezinme edit'tekiyle ayni yerde (sorunun altinda); oyunda sonuk, pause'da aktif. -->
+            <QuestionNav v-if="inGame" class="content-nav" :index="questionIndex" :total="questions.length"
+                         :disabled="gameState !== 'paused'" @go="goToQuestion" />
+
+            <!-- Ilk / son soru suresi, oyun disinda hep acik. Hazir zorluklarda o zorlugun degerlerini
+                 gosterir ama kilitlidir (degistigi gorulsun); sadece Custom'da duzenlenir. -->
+            <div class="custom-panel" :class="{ open: !inGame, locked: !isCustom }">
+                <div class="custom-panel-inner">
+                    <div class="custom-row">
+                        <span class="custom-label">First</span>
+                        <input type="range" min="0" :max="CUSTOM_SLIDER_MAX" step="0.25"
+                               :disabled="!isCustom" :value="Math.min(Number(shownDuration.first) || 0, CUSTOM_SLIDER_MAX)"
+                               @input="onCustomSlider('first', ($event.target as HTMLInputElement).value)" />
+                        <input type="number" step="any" class="custom-number" :class="{ invalid: customInvalid }"
+                               :disabled="!isCustom" :value="shownDuration.first"
+                               @input="customFirstInput = ($event.target as HTMLInputElement).value; applyCustomInputs()" />
+                    </div>
+                    <div class="custom-row">
+                        <span class="custom-label">Last</span>
+                        <input type="range" min="0" :max="CUSTOM_SLIDER_MAX" step="0.25"
+                               :disabled="!isCustom" :value="Math.min(Number(shownDuration.last) || 0, CUSTOM_SLIDER_MAX)"
+                               @input="onCustomSlider('last', ($event.target as HTMLInputElement).value)" />
+                        <input type="number" step="any" class="custom-number" :class="{ invalid: customInvalid }"
+                               :disabled="!isCustom" :value="shownDuration.last"
+                               @input="customLastInput = ($event.target as HTMLInputElement).value; applyCustomInputs()" />
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- BOTTOM BAR: PageWords bar kalibi (pill + ikon ustte / etiket altta + secili overlay). -->
+        <!-- Oyun disi: ustte zorluk, altta Random + Play. Oyunda: solda Return, sagda Pause/Resume. -->
+        <div v-if="!editMode" class="bottom-bar edit-bottom-bar game-bottom-bar" :class="{ idle: !inGame }">
+            <template v-if="!inGame">
+                <BottomBarButton :items="DIFFICULTIES.map(d => ({
+                    label: DIFFICULTY_NAMES[d], active: difficulty === d, click: () => setDifficulty(d),
+                }))" />
+                <div class="game-bar-row">
+                    <BottomBarButton icon="shuffle" label="Random" :active="random" @click="toggleRandom" />
+                    <BottomBarButton v-if="hasQuestions" icon="play" label="Play" @click="startGame" />
+                </div>
+            </template>
+            <div v-else class="game-bar-row">
+                <BottomBarButton icon="skip-start" label="Return" :class="{ 'paused-only': gameState !== 'paused' }"
+                                 @click="confirmReturnToIdle" />
+                <BottomBarButton :icon="gameState === 'paused' ? 'play' : 'pause'"
+                                 :label="gameState === 'paused' ? 'Resume' : 'Pause'"
+                                 :class="{ disabled: gameState === 'feedback' || (gameState === 'paused' && currentAnswered) }"
+                                 @click="gameState === 'paused' ? resumeGame() : pauseGame()" />
+            </div>
+        </div>
+
         <!-- BOTTOM BAR: Edit mode -->
         <div v-if="editMode" class="bottom-bar edit-bottom-bar">
-            <LiquidGlass class="bottom-bar-liquid-glass edit-bar-cancel" @click="exitEditMode">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer">
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/x.svg" :width="15" :height="15" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Cancel</div>
-                    </div>
-                </div>
-            </LiquidGlass>
-            <LiquidGlass class="bottom-bar-liquid-glass edit-bar-save" @click="onEditSaveClick">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer">
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/export.svg" :width="18" :height="18" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Save</div>
-                    </div>
-                </div>
-            </LiquidGlass>
+            <BottomBarButton icon="x" :iconSize="15" label="Cancel" @click="exitEditMode" />
+            <BottomBarButton :items="[
+                { icon: 'export', label: 'Standard View', active: !editRaw, click: () => setEditRaw(false) },
+                { icon: 'export', label: 'Raw View', active: editRaw, click: () => setEditRaw(true) },
+            ]" />
+            <BottomBarButton icon="export" label="Save" @click="onEditSaveClick" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, nextTick, useTemplateRef, onMounted, onBeforeUnmount } from "vue";
 import { useAppStore } from '@/stores/appStore'
 import { PageModel } from "@/wordManagement/PageModel";
 import { WordManager, type MultipleChoiceQuestion } from "@/wordManagement/wordManager";
@@ -178,7 +166,7 @@ import { sendUpdatePageRequest } from "@/wordManagement/updatePageRequest";
 import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponents/ConfirmationPopup/confirmationPopup'
 import {
     Difficulty, DIFFICULTY_NAMES, DIFFICULTY_LOCAL_STORAGE_KEY,
-    getQuestionDuration, loadDifficulty,
+    getQuestionDuration, loadDifficulty, DIFFICULTY_DURATION_RANGES,
     CUSTOM_SLIDER_MAX, isValidCustomDuration, loadCustomDuration, saveCustomDuration,
     loadRandom, saveRandom, ANSWER_FEEDBACK_MS,
 } from "@/wordManagement/Difficulty";
@@ -189,9 +177,7 @@ import { toDashboard } from "@/junk/router";
 import { shuffle } from "@/junk/util/shuffle";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 
-const TIMER_RADIUS = 16
-const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS
-const DIFFICULTIES = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD, Difficulty.BRUTAL, Difficulty.CUSTOM]
+const DIFFICULTIES = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD, Difficulty.CUSTOM]
 
 const appStore = useAppStore()
 const props = defineProps({
@@ -234,6 +220,14 @@ const initialCustom = loadCustomDuration()
 const customFirstInput = ref<string | number>(initialCustom.first)
 const customLastInput = ref<string | number>(initialCustom.last)
 const customInvalid = ref(false)
+
+// Panelde gosterilen: Custom'da kullanicinin girisi, hazir zorlukta o zorlugun araligi (ilk = max, son = min).
+const isCustom = computed(() => difficulty.value === Difficulty.CUSTOM)
+const shownDuration = computed(() => {
+    if (difficulty.value === Difficulty.CUSTOM) return { first: customFirstInput.value, last: customLastInput.value }
+    const r = DIFFICULTY_DURATION_RANGES[difficulty.value]
+    return { first: r.max, last: r.min }
+})
 
 // Gecersiz giris kaydedilmez, son gecerli deger kalir; input kirmizi gosterilir.
 const applyCustomInputs = () => {
@@ -318,7 +312,9 @@ const timerProgress = computed(() => {
     return Math.min(1, elapsed.value / questionDuration.value)
 })
 const remainingText = computed(() => {
-    return (Math.max(0, questionDuration.value - elapsed.value) / 1000).toFixed(1)
+    // Tam saniye; son 3 sn ondalikli (prototype.html #2).
+    const left = Math.max(0, questionDuration.value - elapsed.value) / 1000
+    return left >= 3 ? String(Math.ceil(left)) : left.toFixed(1)
 })
 
 // Siklar her zaman karistirilir (veride dogru sik hep ilk); soru sirasi sadece Random aciksa.
@@ -435,6 +431,25 @@ const goToQuestion = (i: number) => {
     showQuestion(i)
 }
 
+// Paused'da tur bitirilip zorluk secimine (idle) donulur; kayitli tur da silinir.
+const confirmReturnToIdle = () => {
+    if (gameState.value !== 'paused') return
+    showConfirmationPopup({
+        title: 'End this round?',
+        buttons: [
+            { name: 'Cancel', click: closeConfirmationPopup },
+            {
+                name: 'End',
+                click: () => {
+                    closeConfirmationPopup()
+                    prepareGame()
+                    clearPageState(gameStateKey(), 'session')
+                },
+            },
+        ],
+    })
+}
+
 // picked = -1: sure bitti. Timer durur, ANSWER_FEEDBACK_MS boyunca sonuc gosterilir.
 const showFeedback = (picked: number) => {
     if (!current.value) return
@@ -537,6 +552,14 @@ const editMode = ref(false)
 const editTitle = ref('')
 const editRawModeString = ref('')
 const editSaving = ref(false)
+// Iki gorunum ayni veriyi paylasir: gecerken raw metin yeniden ayrisir / yeniden yazilir.
+// editQuestions'ta dogru sik her zaman ilk siktir (formattaki gibi).
+const editRaw = ref(false)
+const editQuestions = ref<MultipleChoiceQuestion[]>([])
+const editIndex = ref(0)
+// -1 = soru metni, i = i. sik, null = hicbiri.
+const editingField = ref<number | null>(null)
+const editCurrent = computed(() => editQuestions.value[editIndex.value])
 
 const showError = (message: string) => {
     showConfirmationPopup({
@@ -545,11 +568,76 @@ const showError = (message: string) => {
     })
 }
 
+// Bos soru (yeni eklenen, henuz yazilmamis) ve bos siklar kaydedilmez / raw'a yazilmaz.
+const isEmptyQuestion = (q: MultipleChoiceQuestion) => q.question.trim() === '' && q.answers.every(a => a.trim() === '')
+const emptyQuestion = (): MultipleChoiceQuestion => ({ question: '', answers: [''], correctIndex: 0 })
+const cleanEditQuestions = () => editQuestions.value
+    .filter(q => !isEmptyQuestion(q))
+    .map(q => ({ question: q.question, answers: q.answers.filter(a => a.trim() !== ''), correctIndex: 0 }))
+const formatEditQuestions = () => WordManager.instance.formatMultipleChoiceForExport(cleanEditQuestions())
+
+// Sondaki bos (yazilmamis) yeni soru sayilmaz: "N+1 / N"; yazilinca "N+1 / N+1".
+const editTotal = computed(() => {
+    const qs = editQuestions.value
+    return qs.length > 0 && isEmptyQuestion(qs[qs.length - 1]) ? qs.length - 1 : qs.length
+})
+
+// Ekrandaki sorunun sonunda hep bir bos sik karti olur; yazilinca yenisi eklenir.
+// Duzenleme bitince aradaki bos siklar silinir.
+watch([editCurrent, editingField], () => {
+    const q = editCurrent.value
+    if (!q) return
+    if (editingField.value === null) {
+        const filled = q.answers.filter(a => a !== '')
+        if (filled.length + 1 !== q.answers.length || q.answers[q.answers.length - 1] !== '') q.answers = [...filled, '']
+    } else if (q.answers[q.answers.length - 1] !== '') {
+        q.answers.push('')
+    }
+}, { deep: true })
+
+const setEditQuestions = (qs: MultipleChoiceQuestion[]) => {
+    editQuestions.value = qs.length > 0 ? qs : [emptyQuestion()]
+}
+
 const enterEditMode = () => {
-    if (!page.value || inGame.value) return
+    if (!page.value || (inGame.value && gameState.value !== 'paused')) return
     editTitle.value = page.value.name
-    editRawModeString.value = WordManager.instance.formatMultipleChoiceForExport(page.value.questions)
+    editRaw.value = false
+    editingField.value = null
+    setEditQuestions(WordManager.instance.setupMultipleChoice(
+        WordManager.instance.formatMultipleChoiceForExport(page.value.questions)))
+    // Quiz'deki (karisik) soru, kaynak sirasinda metniyle bulunur.
+    const i = editQuestions.value.findIndex(q => q.question === current.value?.question)
+    editIndex.value = i >= 0 ? i : 0
     editMode.value = true
+}
+
+// Son sorudan ileri: bos yeni soru acilir. Yazilmadan ayrilinan bos yeni soru atilir.
+const goToEditQuestion = (i: number) => {
+    if (i < 0 || i > editTotal.value) return
+    editingField.value = null
+    const qs = editQuestions.value
+    const last = qs.length - 1
+    if (editIndex.value === last && i !== last && qs.length > 1 && isEmptyQuestion(qs[last])) qs.pop()
+    if (i >= qs.length) qs.push(emptyQuestion())
+    editIndex.value = i
+}
+
+const setFieldEditing = (field: number, on: boolean) => {
+    if (on) editingField.value = field
+    else if (editingField.value === field) editingField.value = null
+}
+
+const setEditRaw = (raw: boolean) => {
+    if (raw === editRaw.value) return
+    editingField.value = null
+    if (raw) {
+        editRawModeString.value = formatEditQuestions()
+    } else {
+        setEditQuestions(WordManager.instance.setupMultipleChoice(editRawModeString.value))
+        editIndex.value = Math.max(0, Math.min(editIndex.value, editQuestions.value.length - 1))
+    }
+    editRaw.value = raw
 }
 
 const exitEditMode = () => {
@@ -564,8 +652,11 @@ const onEditSaveClick = async () => {
         return
     }
 
-    const words = editRawModeString.value.replace(/\n+$/, '')
-    if (WordManager.instance.setupMultipleChoice(words).length === 0) {
+    const words = (editRaw.value
+        ? editRawModeString.value
+        : formatEditQuestions()).replace(/\n+$/, '')
+    const parsed = WordManager.instance.setupMultipleChoice(words)
+    if (parsed.length === 0) {
         showError('Add at least one question with two answers.')
         return
     }
@@ -585,7 +676,25 @@ const onEditSaveClick = async () => {
         return
     }
 
+    // Kayittan sonra ayni sorudan devam edilir.
+    const oldText = parsed[Math.min(editIndex.value, parsed.length - 1)].question
+    const oldIndex = questionIndex.value
+
     await appStore.loadPages()
+    await nextTick() // page watch'i (idle / over'da prepareGame) calissin
+    if (gameState.value === 'paused' && page.value) {
+        // Paused tur yeni sorularla kurulur; cevaplanmis / harcanan sure soru metniyle tasinir.
+        const oldQs = questions.value
+        const oldAnswered = answered.value
+        const oldElapsed = elapsedPerQuestion.value
+        questions.value = buildShuffledQuestions(page.value.questions)
+        const oldPos = questions.value.map(q => oldQs.findIndex(o => o.question === q.question))
+        answered.value = oldPos.map(p => oldAnswered[p] ?? false)
+        elapsedPerQuestion.value = oldPos.map(p => oldElapsed[p] ?? 0)
+    }
+    const newQs = questions.value
+    const i = newQs.findIndex(q => q.question === oldText)
+    showQuestion(Math.max(0, i >= 0 ? i : Math.min(oldIndex, newQs.length - 1)))
     exitEditMode()
 }
 

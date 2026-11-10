@@ -13,6 +13,12 @@ html:not(.mobile) {
 
 .page.words,
 .page.add_page {
+  // Geri tusu devre disi (oyun / edit / secim modu): sonuk ve tiklanamaz.
+  .top-bar .disabled-back {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
   .top-bar {
     height: #{$paddingTop + $pageTopContainerHeight + $pageTopBottomPadding};
     padding-bottom: $pageTopBottomPadding;
@@ -153,5 +159,21 @@ html:not(.mobile) {
       right: 5px;
       height: 30px;
     }
+  }
+}
+
+// Edit kart satiri (PageWords edit + PageAddPage). `.row` PageWords'te yalnizca edit modunda var.
+// Bu dosyada `.page:not(.dashboard:not(.landing)) .button { font-size: 20px }` ile ayni
+// ozgulluk (0,4,0): sonra geldigi icin 16px kazanir.
+.page.words.edit-mode-active .row,
+.page.add_page .row {
+  display: flex;
+  gap: 10px;
+
+  .button {
+    flex-grow: 1;
+    word-break: break-all;
+    width: 0;
+    font-size: 16px;
   }
 }

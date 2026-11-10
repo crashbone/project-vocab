@@ -69,7 +69,7 @@ const onItemClick = (item: ContextMenuItem) => {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     padding: 6px 4px;
     min-width: 180px;
-    font-size: 14px;
+    font-size: $font-size-small;
     animation: contextMenuPopIn 0.15s ease-out;
 
     .context-menu-item {

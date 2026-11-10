@@ -2,7 +2,7 @@ export enum Difficulty {
   EASY = 0,
   MEDIUM = 1,
   HARD = 2,
-  BRUTAL = 3,
+  // 3 eskiden BRUTAL'di; localStorage'daki kayitli degerler kaymasin diye CUSTOM 4'te kaldi.
   CUSTOM = 4,
 }
 
@@ -10,16 +10,14 @@ export const DIFFICULTY_NAMES: Record<Difficulty, string> = {
   [Difficulty.EASY]: 'Easy',
   [Difficulty.MEDIUM]: 'Medium',
   [Difficulty.HARD]: 'Hard',
-  [Difficulty.BRUTAL]: 'Brutal',
   [Difficulty.CUSTOM]: 'Custom',
 }
 
 // Soru basina verilen sure (saniye): ilk soru `max`, son soru `min`.
 export const DIFFICULTY_DURATION_RANGES: Record<Exclude<Difficulty, Difficulty.CUSTOM>, { min: number, max: number }> = {
-  [Difficulty.EASY]: { min: 2.5, max: 8 },
-  [Difficulty.MEDIUM]: { min: 1.75, max: 7 },
-  [Difficulty.HARD]: { min: 1.25, max: 6 },
-  [Difficulty.BRUTAL]: { min: 1, max: 5 },
+  [Difficulty.EASY]: { min: 60, max: 60 },
+  [Difficulty.MEDIUM]: { min: 15, max: 30 },
+  [Difficulty.HARD]: { min: 1.5, max: 8 },
 }
 
 export const DEFAULT_DIFFICULTY = Difficulty.MEDIUM

@@ -75,7 +75,7 @@ const close = closeConfirmationPopup
             padding: 10px 22px;
             border-radius: 12px;
             font-weight: 700;
-            font-size: 14px;
+            font-size: $font-size-small;
             background: rgba($color-lilac-700, 0.1);
             border: 1px solid rgba($color-lilac-700, 0.3);
 

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type Router } from 'vue-router'
 
 // Define your routes
 const routes = [
@@ -41,12 +41,17 @@ const routes = [
     meta: { title: 'Okan | Software Developer' }
   },
 ]
-const router = createRouter({
+// Hot reload bu modulu yeniden calistirirsa ikinci bir router olusuyordu: `import router` kullanan yerler
+// (geri tusu -> toDashboard) adresi yeni router'la degistiriyor, ekrani cizen app ise eskisini dinliyordu
+// -> adres /dashboard olup sayfa degismiyordu. Sadece dev'de: ayni router ornegi yeniden kullanilir.
+const existing = import.meta.hot?.data.router as Router | undefined
+const router = existing ?? createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: routes,
 })
+if (import.meta.hot) import.meta.hot.data.router = router
 
-router.beforeEach((to, from, next) => {
+if (!existing) router.beforeEach((to, from, next) => {
   if (to.meta.title && typeof to.meta.title === 'string') {
     document.title = to.meta.title
   };

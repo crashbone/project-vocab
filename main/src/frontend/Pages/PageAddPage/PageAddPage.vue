@@ -43,34 +43,14 @@ das Kind    Child`
         <div v-if="viewMode === ViewMode.STANDARD" ref="content" class="page-content-container-1" @scroll="saveDraft">
             <template v-for="(word, index) in wordObjects" :key="index">
                 <div class="row">
-                    <ButtonX class="size80px" :class="{ 'edit-mode': word.w1EditMode }" :index="index"
-                             @click="onWordClick(index, 1)">
-                        <div class="button-content2">
-                            <div class="text" :class="{placeholder: !word.w1}">
-                                <div v-show="!word.w1EditMode">{{ word.w1 || 'tap to add' }}</div>
-                                <textarea v-show="word.w1EditMode" ref="wordInputs1"
-                                          @blur="onWordFocusOut(index, 1)" type="text" size='' v-model="word.w1" />
-                            </div>
-                            <div class="bullets">
-                                <div class="bullet" v-for="i in 2" :key="i"
-                                     :class="{ active: i === 1 }"></div>
-                            </div>
+                    <EditableCard v-for="wi in 2" :key="wi" :index="index"
+                                  v-model="word[wi === 1 ? 'w1' : 'w2']"
+                                  v-model:editing="word[wi === 1 ? 'w1EditMode' : 'w2EditMode']">
+                        <div class="bullets">
+                            <div class="bullet" v-for="i in 2" :key="i"
+                                 :class="{ active: i === wi }"></div>
                         </div>
-                    </ButtonX>
-                    <ButtonX class="size80px" :class="{ 'edit-mode': word.w2EditMode }" :index="index"
-                             @click="onWordClick(index, 2)">
-                        <div class="button-content2">
-                            <div class="text" :class="{placeholder: !word.w2}">
-                                <div v-show="!word.w2EditMode">{{ word.w2 || 'tap to add' }}</div>
-                                <textarea v-show="word.w2EditMode" ref="wordInputs2"
-                                          @blur="onWordFocusOut(index, 2)" type="text" size='' v-model="word.w2" />
-                            </div>
-                            <div class="bullets">
-                                <div class="bullet" v-for="i in 2" :key="i"
-                                     :class="{ active: i === 2 }"></div>
-                            </div>
-                        </div>
-                    </ButtonX>
+                    </EditableCard>
                 </div>
             </template>
         </div>
@@ -80,22 +60,14 @@ das Kind    Child`
             <textarea v-model="rawModeString" class="raw-mode" />
         </div>
 
-        <div class="bottom-bar">
-            <LiquidGlass class="bottom-bar-liquid-glass pointer" :class="`block${index1 + 1}`" v-for="(objList, index1) in bottomBarButtons" :key="index1">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button" @click="obj.click" v-for="(obj, index2) in objList" :key="index2">
-                        <transition name="modeSwitch-scale">
-                            <div v-if="obj.active?.()" class="animation-overlay"></div>
-                        </transition>
-                        <div class="bottom-bar-button-top">
-                            <SvgX :url="`/main/src/frontend/assets/svg/${obj.icon}.svg`" :width="obj.size" :height="obj.size"
-                                  :style="obj.style || ''" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">{{ obj.name }}</div>
-                    </div>
-                </div>
-            </LiquidGlass>
-
+        <div class="bottom-bar edit-bottom-bar">
+            <!-- Bos sol blok (AddPage'de Cancel yok): Save sagda kalsin. -->
+            <BottomBarButton />
+            <BottomBarButton :items="isMultipleChoice ? [] : [
+                { icon: 'export', label: 'Standard View', active: viewMode === ViewMode.STANDARD, click: () => onViewModeChange(ViewMode.STANDARD) },
+                { icon: 'export', label: 'Raw View', active: viewMode === ViewMode.RAW, click: () => onViewModeChange(ViewMode.RAW) },
+            ]" />
+            <BottomBarButton icon="export" label="Save" @click="onSaveClick" />
         </div>
     </div>
 </template>
@@ -103,7 +75,7 @@ das Kind    Child`
 import router from "@/router";
 import { useAppStore } from "@/stores/appStore";
 import { sendAddNewPageRequest, type PostRequestDataType } from "@/wordManagement/addNewPageRequest";
-import { computed, nextTick, onMounted, ref, useTemplateRef, watch, type Ref } from "vue";
+import { nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 import { ViewMode } from "./ViewMode";
 import { WordManager } from "@/wordManagement/wordManager";
@@ -120,16 +92,6 @@ const appStore = useAppStore()
 /* ==================
  * === INITIALIZE ===
  * ================== */
-type BottomBarObj = {
-    icon: string,
-    name: string,
-    style: string,
-    size: number,
-    click?: () => void,
-    active?: () => boolean
-}
-
-
 // Multiple choice sayfalari (admin) simdilik sadece raw view ile olusturulur.
 const route = useRoute()
 const isMultipleChoice = route.query.type === PageType.MULTIPLE_CHOICE
@@ -141,8 +103,6 @@ const wordObjects = ref([{
     w2: "",
     w2EditMode: false,
 }]);
-const wordInputs1: Ref<HTMLElement[]> = ref([]);
-const wordInputs2: Ref<HTMLElement[]> = ref([]);
 const rawModeString = ref('');
 const viewMode = ref(isMultipleChoice ? ViewMode.RAW : ViewMode.STANDARD)
 const content = useTemplateRef<HTMLElement>('content')
@@ -196,40 +156,6 @@ const onBackClick = () => {
     })
 }
 
-const bottomBarButtons = computed((): BottomBarObj[][] => {
-    return [
-        [],  // empty block1 (no cancel in addPage)
-        isMultipleChoice ? [] : [
-            {
-                icon: 'export',
-                name: 'Standard View',
-                style: 'transform: translateY(-3px)',
-                size: 18,
-                click: () => onViewModeChange(ViewMode.STANDARD),
-                active: () => viewMode.value === ViewMode.STANDARD
-            },
-            {
-                icon: 'export',
-                name: 'Raw View',
-                style: 'transform: translateY(-3px)',
-                size: 18,
-                click: () => onViewModeChange(ViewMode.RAW),
-                active: () => viewMode.value === ViewMode.RAW
-            }
-        ],
-        [
-            {
-                icon: 'export',
-                name: 'Save',
-                style: 'transform: translateY(-3px)',
-                size: 18,
-                click: onSaveClick,
-            }
-        ],
-    ]
-})
-
-
 /* ====================
  * === LISTEN INPUT ===
  * ==================== */
@@ -281,34 +207,6 @@ watch(
 /* ===============
  * === METHODS ===
  * =============== */
-const onWordClick = (i: number, wi: number) => {
-    const word = wordObjects.value[i];
-    if (wi === 2) {
-        word.w2EditMode = true
-    } else {
-        word.w1EditMode = true
-    }
-    nextTick().then(() => {
-        console.log(wordInputs1.value, wordInputs2.value)
-        if (wi === 2) {
-            wordInputs2.value[i]?.focus()
-            return
-        }
-        if (wi === 1) {
-            wordInputs1.value[i]?.focus()
-            return
-        }
-    })
-}
-
-const onWordFocusOut = (i: number, wi: number) => {
-    const word = wordObjects.value[i];
-    if (wi === 2) {
-        word.w2EditMode = false
-    } else {
-        word.w1EditMode = false
-    }
-}
 const onViewModeChange = (vm: ViewMode) => {
     if (vm === ViewMode.RAW) {
         rawModeString.value = getRawModeTextFromInputs();

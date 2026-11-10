@@ -6,8 +6,10 @@
             </div>
             <div class="middle">
                 <div class="middle-left header1">
-                    <div v-if="!editTitleMode" :class="{pointer: titleAdjustable}" @click="onTitleClick"
-                         style="white-space: pre-wrap; word-wrap: break-word;">{{ props.title }}</div>
+                    <!-- Genislik JS ile en uzun satira daraltilir: baslik 2 satira kirilinca kalem
+                         bos alanin sonuna degil, en uzun satirin sagina gelir. -->
+                    <div v-if="!editTitleMode" ref="title-box" :class="{pointer: titleAdjustable}" @click="onTitleClick"
+                         :style="{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }"><span ref="title-text">{{ props.title }}</span></div>
                     <textarea v-else
                               ref="title-input"
                               :style="`width: ${title.length + 2}ch`"
@@ -33,7 +35,7 @@
 <script setup lang="ts">
 import { toDashboard } from '@/junk/router';
 import router from '@/router';
-import { nextTick, ref, useTemplateRef, type PropType } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch, type PropType } from 'vue';
 
 const props = defineProps({
     title: {
@@ -86,5 +88,32 @@ const onTitleFocusOut = () => {
     editTitleMode.value = false
     emit('commit:title')
 }
+
+// Baslik kutusunu en uzun satirin genisligine daralt (CSS kirilan kutuyu kucultmez).
+const titleBox = useTemplateRef<HTMLElement>('title-box')
+const titleText = useTemplateRef<HTMLElement>('title-text')
+
+// Senkron olcum: once genislik serbest birakilir, ayni karede olculup yeniden yazilir.
+// (Eski async surum ust uste cagrilinca daraltilmis kutuyu tekrar olcup baslig 3 satira bolebiliyordu.)
+const fitTitle = () => nextTick(() => {
+    const box = titleBox.value, text = titleText.value
+    if (!box || !text) return
+    box.style.width = ''
+    const lines = [...text.getClientRects()]
+    // +1px: alt piksel yuvarlamasi yuzunden son kelime alt satira dusmesin.
+    if (lines.length <= 1) return
+    // border-box'ta width padding'i de icerir; padding eklenmezse icerik daralir ve 3 satira bolunur.
+    const cs = getComputedStyle(box)
+    const pad = cs.boxSizing === 'border-box' ? parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) : 0
+    box.style.width = `${Math.ceil(Math.max(...lines.map(r => r.width)) + pad) + 1}px`
+})
+
+watch([() => props.title, editTitleMode], fitTitle)
+onMounted(() => {
+    fitTitle()
+    document.fonts?.ready.then(fitTitle)
+    window.addEventListener('resize', fitTitle)
+})
+onBeforeUnmount(() => window.removeEventListener('resize', fitTitle))
 
 </script>

@@ -1,16 +1,12 @@
 .page.words {
-  .bottom-bar {
+  // Normal + secim barlari; edit bari BottomBarButton.vue'de (ortak).
+  .bottom-bar:not(.edit-bottom-bar) {
     // width: 353px;
     margin: auto;
     --border-radius: 30px;
 
     .bottom-bar-button {
       height: 40px;
-    }
-
-    // Uzun etiketler bari sismesin diye kondu, ama edit barinda 'Standard View'
-    // 55px'e sigmayip komsusunun ustune tasiyordu -- edit bari haric tutuldu.
-    &:not(.edit-bottom-bar) .bottom-bar-button {
       max-width: 55px;
     }
 
@@ -44,121 +40,9 @@
       outline: 3px solid $color-lilac-700;
       outline-offset: -1px;
     }
-
-    .disabled-back {
-      opacity: 0.3;
-      pointer-events: none;
-    }
-  }
-
-  // Edit mode
-  .edit-bottom-bar {
-    display: flex;
-    justify-content: space-evenly;
-    padding-inline: 12px;
-    width: auto !important;
-    --border-radius: 32px;
-
-    // Yukaridaki .bottom-bar override'lari (height: 40px + slot padding'i) bu bara
-    // uymuyor: ikon 18px + etiket 19px, 40px'in ic kutusuna sigmayip camin disina
-    // tasiyordu. PageAddPage'in barinda bu kurallar yok, yuksekligi icerik belirliyor.
-    .bottom-bar-button {
-      height: auto;
-    }
-
-    .liquid-glass-card-slot-content {
-      padding: 0;
-    }
-
-    .edit-bar-cancel,
-    .edit-bar-save {
-      .liquid-glass-card-slot-content {
-        width: 60px;
-      }
-    }
-
-    .edit-bar-middle {
-      .liquid-glass-card-slot-content {
-        padding-inline: 16px;
-        gap: 10px;
-      }
-    }
-
-    .bottom-bar-button {
-      position: relative;
-      padding: 12px 0;
-
-      .animation-overlay {
-        content: "";
-        position: absolute;
-        background-color: rgba(0, 0, 0, 0.06);
-        top: 3px;
-        bottom: 3px;
-        left: -10px;
-        right: -10px;
-        border-radius: 30px;
-      }
-    }
-  }
-
-  // `.row` yalnizca edit modunda var. `&.edit-mode-active` ile ozgullugu bir sinif
-  // artiriyoruz: aksi halde PageWithWords.scss'teki
-  // `.page:not(.dashboard:not(.landing)) .button { font-size: 20px }` kurali ayni
-  // ozgullukte (0,4,0) oldugu icin kazanan, yuklenme sirasina kaliyordu -- AddPage'de
-  // 16px, burada 20px cikiyordu.
-  &.edit-mode-active .row {
-    display: flex;
-    gap: 10px;
-
-    .button {
-      flex-grow: 1;
-      word-break: break-all;
-      width: 0;
-      font-size: 16px;
-
-      .text.placeholder {
-        opacity: 0.7;
-        font-weight: 400;
-      }
-
-      .sparkles-component {
-        display: none;
-      }
-    }
-  }
-
-  textarea.raw-mode {
-    height: 100%;
-    padding: 12px;
-    border-radius: 20px;
-    background-color: rgba(255,255,255,0.25);
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
   }
 }
 
-input[type=text], textarea {
-  min-width: 50px;
-  word-break: break-all;
-  border-radius: 5px;
-}
-
-.button {
-  &.type1 {
-    input[type=text], textarea {
-      background: $color-pastel-pink-100;
-    }
-  }
-  &.type2 {
-    input[type=text], textarea {
-      background: $color-peach-100;
-    }
-  }
-  &.type3 {
-    input[type=text], textarea {
-      background: $color-cyan-100;
-    }
-  }
-}
 // Cince okunus karakterin ustunde (native <ruby> kart yuksekligine sayilmadigi icin span).
 .page.words .r {
   display: inline-flex;

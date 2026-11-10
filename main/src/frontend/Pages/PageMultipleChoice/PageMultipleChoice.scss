@@ -1,208 +1,95 @@
 // PageMultipleChoice uses shared styles from
 // - Page.scss
 // - PageWithWords.scss (.page.words: top bar, .page-content-container-1)
+// - BottomBarButton.vue (.edit-bottom-bar), EditableCard.vue, main.scss (textarea.raw-mode)
 
 .page.words.multiple-choice {
-  // Oyunda alt bar yok; PageWithWords.scss'teki alt bar payi sadece edit modunda gerekli.
-  &:not(.edit-mode-active) .page-content-container-1 {
-    padding-bottom: 36px;
-  }
-
   // ---------- EDIT MODE ----------
-  // Sayfalar lazy yuklendigi icin PageWords.scss'e guvenilmez; Cancel / Save bari burada.
-  textarea.raw-mode {
-    height: 100%;
-    padding: 12px;
-    border-radius: 20px;
-    background-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+  // Alt bar: BottomBarButton.vue, kartlar: EditableCard.vue, raw-mode: main.scss.
+  // Iki satirli alt bar (oyun disi) icin icerige ayrilan alt bosluk: 16 + 36 (kullanilamaz alan) + 61 (Random/Play) + 44 (zorluk) + 10 aralik.
+  &.two-row-bar .page-content-container-1 {
+    padding-bottom: #{16px + 36px + 61px + 44px + 10px};
   }
 
-  .edit-bottom-bar {
-    display: flex;
-    justify-content: space-evenly;
-    padding-inline: 12px;
-    // PageWords.scss yuklendiyse onun `width: auto !important`'i ile ayni sonuc.
-    width: auto !important;
-    margin: auto;
-    --border-radius: 32px;
+  // Gezinme: edit ve oyunda ayni yer (sorunun altinda).
+  .content-nav {
+    padding-top: 12px;
+  }
 
-    .liquid-glass-card-slot-content {
-      width: 60px;
-      padding: 0;
-    }
-
-    .bottom-bar-button {
-      height: auto;
-      padding: 12px 0;
-    }
+  .edit-question {
+    font-size: $font-size-title;
   }
 
   // ---------- TIMER (sorunun solunda) ----------
   .mc-timer {
     position: relative;
     flex-shrink: 0;
-    width: 34px;
-    height: 34px;
+    width: 48px;
+    height: 48px;
     display: flex;
     justify-content: center;
     align-items: center;
 
-    svg {
+    // Gradyan halka (pembeden lilaya), 6px. --p: 0..100, template'ten gelir.
+    .mc-timer-ring {
+      --w: 6px;
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg); // halka tepeden baslasin
-    }
-
-    circle {
-      fill: none;
-      stroke-width: 3;
-    }
-
-    .mc-timer-track {
-      fill: $color-lilac-700;
-      stroke: rgba($color-lilac-700, 0.25);
-    }
-
-    .mc-timer-progress {
-      stroke: $color-lilac-500;
-      stroke-linecap: round;
+      border-radius: 50%;
+      background: conic-gradient(#c86aa2, $color-lilac-700 calc(var(--p) * 1%), rgba($color-lilac-700, 0.15) 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--w) - 1px), #000 calc(100% - var(--w)));
+      mask: radial-gradient(farthest-side, transparent calc(100% - var(--w) - 1px), #000 calc(100% - var(--w)));
     }
 
     .mc-timer-text {
       position: relative;
-      color: $color-pastel-pink-200;
-      font-size: 11px;
+      color: $color-lilac-700;
+      font-size: $font-size-title;
       font-weight: 900;
       letter-spacing: -0.03em;
     }
   }
 
-  // ---------- DIFFICULTY / GAME BAR (ayni hucreyi paylasir, yukseklik sabit kalir) ----------
-  .top-controls {
-    display: grid;
-
-    > * {
-      grid-area: 1 / 1;
-    }
-  }
-
-  .game-bar {
-    display: flex;
-    justify-content: space-between;
+  // ---------- GAME BOTTOM BAR (PageWords alt bari gibi LiquidGlass; tek satir) ----------
+  .game-bottom-bar {
     align-items: center;
-    padding: 0 4px;
-    transition: opacity 0.25s ease;
+    // Yukseklik icerikten: sabit 64px'te 61px'lik satir dikeyde ortalanip oyun disina gore birkac px kayiyordu.
+    height: auto;
 
-    &.hidden {
-      opacity: 0;
+    // Oyun disi: zorluk ustte, Random + Play altta.
+    // Iki satir; bar bottom'a sabit oldugu icin yukari dogru buyur.
+    &.idle {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    // Oyun disi (Random | Play) ve oyun (Return | Pause/Resume) ayni satir: solda/sagda ayni hizada.
+    .game-bar-row {
+      display: flex;
+      justify-content: space-evenly;
+      align-self: stretch;
+      flex-grow: 1;
+    }
+
+    // Return sadece pause'da gorunur ama yer kaplamaya devam eder: Pause/Resume yerinden oynamaz.
+    .paused-only {
+      visibility: hidden;
       pointer-events: none;
     }
 
-    .progress {
-      color: $color-lilac-700;
-      font-size: 14px;
-      font-weight: 800;
-    }
-
-    .progress-nav {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .nav-button {
-      padding: 0 6px;
-      color: $color-lilac-700;
-      font-size: 18px;
-      font-weight: 800;
-      line-height: 1;
-      user-select: none;
-
-      &.disabled {
-        opacity: 0.3;
-        pointer-events: none;
-      }
-    }
-
-    .game-bar-button.disabled {
+    .disabled {
       opacity: 0.5;
       pointer-events: none;
     }
-
-    .game-bar-button {
-      padding: 6px 16px;
-      border-radius: 11px;
-      background: white;
-      color: $color-lilac-800;
-      font-size: 13px;
-      font-weight: 700;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-    }
   }
 
-  .difficulty-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 6px;
-    transition: transform 0.25s ease, opacity 0.25s ease;
 
-    &.hidden {
-      transform: translateY(calc(-100% - 16px));
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .segmented-control {
-      display: flex;
-      padding: 3px;
-      border-radius: 14px;
-      background: rgba($color-lilac-700, 0.12);
-      box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(6px);
-
-      .segment {
-        padding: 6px 7px;
-        border-radius: 11px;
-        font-size: 13px;
-        font-weight: 700;
-        color: $color-lilac-700;
-        transition: background-color 0.15s ease, color 0.15s ease;
-
-        &.active {
-          background: white;
-          color: $color-lilac-800;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-        }
-      }
-    }
-  }
-
-  .random-toggle {
-    flex-shrink: 0;
-    padding: 6px 9px;
-    border-radius: 11px;
-    font-size: 13px;
-    font-weight: 700;
-    color: $color-lilac-700;
-    background: rgba($color-lilac-700, 0.12);
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
-    transition: background-color 0.15s ease, color 0.15s ease;
-
-    &.active {
-      background: $color-lilac-700;
-      color: white;
-    }
-  }
-
-  // ---------- CUSTOM PANEL (secici ile soru alani arasinda, yumusak acilir) ----------
+  // ---------- CUSTOM PANEL (icerigin sonunda = alt barin hemen ustu, yumusak acilir) ----------
   .custom-panel {
     display: grid;
     grid-template-rows: 0fr;
     opacity: 0;
+    flex-shrink: 0;
     margin-top: -16px; // kapaliyken ust bosluk da kapansin
     pointer-events: none;
     transition: grid-template-rows 0.25s ease, opacity 0.25s ease, margin-top 0.25s ease;
@@ -212,6 +99,12 @@
       opacity: 1;
       margin-top: 0;
       pointer-events: auto;
+    }
+
+    // Hazir zorluk: degerler gorunur, dokunulamaz.
+    &.locked .custom-panel-inner {
+      opacity: 0.5;
+      pointer-events: none;
     }
 
     .custom-panel-inner {
@@ -243,13 +136,28 @@
         padding: 4px 6px;
         border-radius: 8px;
         border: 2px solid transparent;
-        background: white;
+        background: rgba($color-lilac-700, 0.12);
         color: $color-lilac-800;
+        outline: none;
+
+        &:focus {
+          border-color: $color-pastel-pink-250;
+        }
         font-size: 13px;
         font-weight: 700;
 
         &.invalid {
           border-color: #D0455B;
+        }
+
+        // Yukari/asagi oklari yok: telefonda basilamayacak kadar kucukler, yer de kapliyorlar.
+        appearance: textfield;
+        -moz-appearance: textfield;
+
+        &::-webkit-inner-spin-button,
+        &::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
         }
       }
     }
@@ -313,7 +221,7 @@
     min-width: 0;
     overflow-wrap: anywhere;
     color: $color-lilac-800;
-    font-size: 17px;
+    font-size: $font-size-title;
     font-weight: 600;
     line-height: 1.35;
     padding: 0 4px;
@@ -358,7 +266,7 @@
     align-self: center;
     padding: 6px 14px;
     border-radius: 12px;
-    font-size: 14px;
+    font-size: $font-size-small;
     font-weight: 800;
     color: white;
     background: #D0455B;
@@ -395,45 +303,6 @@
       border-top: 8px solid transparent;
       border-bottom: 8px solid transparent;
       border-left: 13px solid white;
-    }
-  }
-
-  // ---------- START / PAUSE ----------
-  .play-overlay {
-    position: absolute;
-    inset: -8px;
-    z-index: 2;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 20px;
-    // Icerik tamamen kapanmasin, soluk ve hafif bulanik gorunsun.
-    background: rgba(0, 0, 0, 0.12);
-    backdrop-filter: blur(1.5px);
-
-    .play-button {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 84px;
-      height: 60px;
-      border-radius: 18px;
-      background-color: $color-lilac-700;
-      box-shadow: 0 0 14px -1px rgba(0, 0, 0, 0.45);
-      transition: transform 0.15s ease;
-    }
-
-    &:hover .play-button {
-      transform: scale(1.06);
-    }
-
-    .play-triangle {
-      width: 0;
-      height: 0;
-      margin-left: 5px;
-      border-top: 13px solid transparent;
-      border-bottom: 13px solid transparent;
-      border-left: 22px solid white;
     }
   }
 }

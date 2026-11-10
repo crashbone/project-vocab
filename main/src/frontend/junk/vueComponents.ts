@@ -1,4 +1,7 @@
 import SvgX from '@/NonPageComponents/SvgX.vue'
+import QuestionNav from "@/NonPageComponents/QuestionNav/QuestionNav.vue"
+import BottomBarButton from "@/NonPageComponents/BottomBarButton/BottomBarButton.vue"
+import EditableCard from "@/NonPageComponents/EditableCard/EditableCard.vue"
 import PageLoading from '@/Pages/PageLoading/PageLoading.vue'
 import PageWords from '@/Pages/PageWords/PageWords.vue'
 import PageDashboard from '@/Pages/PageDashboard/PageDashboard.vue'
@@ -22,6 +25,9 @@ export const register = (app: App) => {
   app.component("LiquidGlass", LiquidGlass) 
   app.component("Sparkles", Sparkles)
   app.component("SvgX", SvgX)
+  app.component("QuestionNav", QuestionNav)
+  app.component("BottomBarButton", BottomBarButton)
+  app.component("EditableCard", EditableCard)
   app.component("ButtonX", ButtonX)
   app.component("Tooltip", Tooltip)
   app.component("ContextMenu", ContextMenu)

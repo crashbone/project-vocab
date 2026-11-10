@@ -5,8 +5,7 @@
         <PageWithWordsTopBar
                              :title="editMode ? editTitle : title"
                              :titleAdjustable="editMode"
-                             :backDisabled="selectionMode"
-                             :hideBack="editMode"
+                             :backDisabled="selectionMode || editMode"
                              @update:title="editTitle = $event">
             <template v-if="editMode && editViewMode === ViewMode.RAW" #right>
                 <SvgX v-tooltip="{
@@ -70,34 +69,14 @@ das Kind    Child`
         <div v-else-if="editViewMode === ViewMode.STANDARD" ref="listContainer" class="page-content-container-1" @scroll="saveState">
             <template v-for="(word, index) in editWordObjects" :key="index">
                 <div class="row">
-                    <ButtonX class="size80px" :class="{ 'edit-mode': word.w1EditMode }" :index="index"
-                             @click="onEditWordClick(index, 1)">
-                        <div class="button-content2">
-                            <div class="text" :class="{placeholder: !word.w1}">
-                                <div v-show="!word.w1EditMode">{{ word.w1 || 'tap to add' }}</div>
-                                <textarea v-show="word.w1EditMode" ref="editWordInputs1"
-                                          @blur="onEditWordFocusOut(index, 1)" type="text" size='' v-model="word.w1" />
-                            </div>
-                            <div class="bullets">
-                                <div class="bullet" v-for="i in 2" :key="i"
-                                     :class="{ active: i === 1 }"></div>
-                            </div>
+                    <EditableCard v-for="wi in 2" :key="wi" :index="index"
+                                  v-model="word[wi === 1 ? 'w1' : 'w2']"
+                                  v-model:editing="word[wi === 1 ? 'w1EditMode' : 'w2EditMode']">
+                        <div class="bullets">
+                            <div class="bullet" v-for="i in 2" :key="i"
+                                 :class="{ active: i === wi }"></div>
                         </div>
-                    </ButtonX>
-                    <ButtonX class="size80px" :class="{ 'edit-mode': word.w2EditMode }" :index="index"
-                             @click="onEditWordClick(index, 2)">
-                        <div class="button-content2">
-                            <div class="text" :class="{placeholder: !word.w2}">
-                                <div v-show="!word.w2EditMode">{{ word.w2 || 'tap to add' }}</div>
-                                <textarea v-show="word.w2EditMode" ref="editWordInputs2"
-                                          @blur="onEditWordFocusOut(index, 2)" type="text" size='' v-model="word.w2" />
-                            </div>
-                            <div class="bullets">
-                                <div class="bullet" v-for="i in 2" :key="i"
-                                     :class="{ active: i === 2 }"></div>
-                            </div>
-                        </div>
-                    </ButtonX>
+                    </EditableCard>
                 </div>
             </template>
         </div>
@@ -109,127 +88,35 @@ das Kind    Child`
 
         <!-- BOTTOM BAR: Normal mode -->
         <div v-if="!selectionMode && !editMode" class="bottom-bar" style="width: 270px">
-            <LiquidGlass class="bottom-bar-liquid-glass">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer" v-for="(obj, index) in [
-                        {
-                            icon: 'export',
-                            name: 'Export',
-                            size: 18,
-                            click: (e: Event) => { openExportMenu(e) },
-                        },
-                        {
-                            icon: 'shuffle',
-                            name: 'Shuffle',
-                            size: 20,
-                            click: () => { shuffleClick() },
-                        },
-                        {
-                            icon: 'toggle-all',
-                            name: 'Toggle All',
-                            size: 17,
-                            click: () => { toggleClick() },
-                        },
-                        // {
-                        //     icon: 'appearance',
-                        //     name: 'Appearance',
-                        //     size: 19,
-                        // }
-                    ]" :key="index" @click="obj.click">
-                        <div class="bottom-bar-button-top">
-                            <SvgX :url="`/main/src/frontend/assets/svg/${obj.icon}.svg`" :width="obj.size" :height="obj.size" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">{{ obj.name }}</div>
-                    </div>
-                </div>
-            </LiquidGlass>
+            <BottomBarButton :items="[
+                { icon: 'export', label: 'Export', click: openExportMenu },
+                { icon: 'shuffle', label: 'Shuffle', iconSize: 20, click: shuffleClick },
+                { icon: 'toggle-all', label: 'Toggle All', iconSize: 17, click: toggleClick },
+            ]" />
         </div>
 
         <!-- BOTTOM BAR: Selection mode -->
         <div v-else-if="selectionMode" class="bottom-bar selection-bottom-bar">
-            <LiquidGlass class="bottom-bar-liquid-glass" @click="openExportMenu($event)">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer">
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/export.svg" :width="18" :height="18" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Export</div>
-                    </div>
-                </div>
-            </LiquidGlass>
-            <LiquidGlass class="bottom-bar-liquid-glass" :class="{ disabled: selectedIndices.size === 0 }"
-                         @click="confirmDeleteWords(selectedIndices, exitSelectionMode)">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer">
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/trash.svg" :width="18" :height="18" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Delete</div>
-                    </div>
-                </div>
-            </LiquidGlass>
-            <LiquidGlass class="bottom-bar-liquid-glass" @click="exitSelectionMode">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer">
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/x.svg" :width="15" :height="15" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Cancel</div>
-                    </div>
-                </div>
-            </LiquidGlass>
+            <BottomBarButton icon="export" label="Export" @click="openExportMenu($event)" />
+            <BottomBarButton icon="trash" label="Delete" :class="{ disabled: selectedIndices.size === 0 }"
+                             @click="confirmDeleteWords(selectedIndices, exitSelectionMode)" />
+            <BottomBarButton icon="x" :iconSize="15" label="Cancel" @click="exitSelectionMode" />
         </div>
 
         <!-- BOTTOM BAR: Edit mode -->
         <div v-else-if="editMode" class="bottom-bar edit-bottom-bar">
-            <LiquidGlass class="bottom-bar-liquid-glass edit-bar-cancel" @click="exitEditMode">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer">
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/x.svg" :width="15" :height="15" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Cancel</div>
-                    </div>
-                </div>
-            </LiquidGlass>
-            <LiquidGlass class="bottom-bar-liquid-glass edit-bar-middle">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer" @click="onEditViewModeChange(ViewMode.STANDARD)">
-                        <transition name="modeSwitch-scale">
-                            <div v-if="editViewMode === ViewMode.STANDARD" class="animation-overlay"></div>
-                        </transition>
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/export.svg" :width="18" :height="18" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Standard View</div>
-                    </div>
-                    <div class="bottom-bar-button pointer" @click="onEditViewModeChange(ViewMode.RAW)">
-                        <transition name="modeSwitch-scale">
-                            <div v-if="editViewMode === ViewMode.RAW" class="animation-overlay"></div>
-                        </transition>
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/export.svg" :width="18" :height="18" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Raw View</div>
-                    </div>
-                </div>
-            </LiquidGlass>
-            <LiquidGlass class="bottom-bar-liquid-glass edit-bar-save" @click="onEditSaveClick">
-                <div class="liquid-glass-card-slot-content">
-                    <div class="bottom-bar-button pointer">
-                        <div class="bottom-bar-button-top">
-                            <SvgX url="/main/src/frontend/assets/svg/export.svg" :width="18" :height="18" />
-                        </div>
-                        <div class="bottom-bar-button-bottom">Save</div>
-                    </div>
-                </div>
-            </LiquidGlass>
+            <BottomBarButton icon="x" :iconSize="15" label="Cancel" @click="exitEditMode" />
+            <BottomBarButton :items="[
+                { icon: 'export', label: 'Standard View', active: editViewMode === ViewMode.STANDARD, click: () => onEditViewModeChange(ViewMode.STANDARD) },
+                { icon: 'export', label: 'Raw View', active: editViewMode === ViewMode.RAW, click: () => onEditViewModeChange(ViewMode.RAW) },
+            ]" />
+            <BottomBarButton icon="export" label="Save" @click="onEditSaveClick" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, useTemplateRef, type Ref } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, useTemplateRef } from "vue";
 import { useAppStore } from '@/stores/appStore'
 import { showConfirmationPopup, closeConfirmationPopup } from '@/NonPageComponents/ConfirmationPopup/confirmationPopup'
 import { showContextMenu } from '@/NonPageComponents/ContextMenu/contextMenu'
@@ -415,8 +302,6 @@ const toggleSelection = (i: number) => {
 
 const editTitle = ref('')
 const editWordObjects = ref<{ w1: string, w1EditMode: boolean, w2: string, w2EditMode: boolean }[]>([])
-const editWordInputs1: Ref<HTMLElement[]> = ref([])
-const editWordInputs2: Ref<HTMLElement[]> = ref([])
 const editRawModeString = ref('')
 const editViewMode = ref(ViewMode.STANDARD)
 
@@ -457,22 +342,9 @@ const editWordAt = (i: number) => {
     nextTick().then(() => {
         const row = listContainer.value?.querySelectorAll('.row')[i]
         row?.scrollIntoView({ block: 'center' })
-        onEditWordClick(i, 1)
+        const word = editWordObjects.value[i]
+        if (word) word.w1EditMode = true
     })
-}
-
-const onEditWordClick = (i: number, wi: number) => {
-    const word = editWordObjects.value[i]
-    if (wi === 2) { word.w2EditMode = true } else { word.w1EditMode = true }
-    nextTick().then(() => {
-        if (wi === 2) { editWordInputs2.value[i]?.focus(); return }
-        if (wi === 1) { editWordInputs1.value[i]?.focus(); return }
-    })
-}
-
-const onEditWordFocusOut = (i: number, wi: number) => {
-    const word = editWordObjects.value[i]
-    if (wi === 2) { word.w2EditMode = false } else { word.w1EditMode = false }
 }
 
 const onEditViewModeChange = (vm: ViewMode) => {
