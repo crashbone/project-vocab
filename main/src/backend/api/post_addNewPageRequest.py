@@ -3,8 +3,6 @@ from fastapi import APIRouter, Cookie, HTTPException, Depends
 from pydantic import BaseModel
 from psycopg2.extras import RealDictCursor
 from backend.jwt_handler import verify_app_jwt
-from backend.db_util.get_user_by_id import get_user_by_id
-from backend.roles import USERS_ROLES, Role
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")
@@ -21,7 +19,6 @@ class PostRequestData(BaseModel):
     type: str = "page"
 
 PAGE_TYPES = ["page", "multiple_choice"]
-ADMIN_ONLY_PAGE_TYPES = ["multiple_choice"]
 
 def get_db_connection():
     return psycopg2.connect(
@@ -48,11 +45,6 @@ def add_page_handler(postRequestData: PostRequestData, user=Depends(auth_require
         raise HTTPException(400, "Invalid input")
     if postRequestData.type not in PAGE_TYPES:
         raise HTTPException(400, "Invalid page type")
-    if postRequestData.type in ADMIN_ONLY_PAGE_TYPES:
-        full_user = get_user_by_id(user['userid'])
-        user_roles = USERS_ROLES.get(full_user.get("email"), []) if full_user else []
-        if Role.ADMIN not in user_roles:
-            raise HTTPException(403, "Admin privileges required")
 
     try:
         conn = get_db_connection()

@@ -82,7 +82,7 @@ import type { InitialDataWithUser } from '@/junk/fetchInitialData';
 import { showContextMenu } from '@/NonPageComponents/ContextMenu/contextMenu'
 import { PageType } from '@/wordManagement/PageType';
 import type { PageModel } from '@/wordManagement/PageModel';
-import { openProfileMenu, isAdminUser } from '@/junk/profileMenu';
+import { openProfileMenu } from '@/junk/profileMenu';
 import { loadPageState, PAGE_STATE_KEYS } from '@/junk/pageStateService';
 import type { AddPageDraft } from '@/Pages/PageAddPage/addPageDraft';
 
@@ -93,7 +93,6 @@ const initialData = computed(() => {
     return data?.logged_in && data.user ? data as InitialDataWithUser : undefined
 })
 const model = computed(() => appStore.dashboardModel)
-const isAdmin = computed(() => !!initialData.value && isAdminUser())
 
 // En son calisilan sayfanin tarihine gore karsilama satiri.
 const welcomeText = computed(() => {
@@ -159,17 +158,13 @@ const pageClick = (pageId: number) => {
 const newPageClick = (type: PageType = PageType.PAGE) => {
     router.push({ name: 'add_page', query: type === PageType.PAGE ? {} : { type } })
 }
-// Admin icin veya draft varsa + bir menu acar; aksi halde dogrudan yeni sayfa.
+// + her zaman menu acar: yeni sayfa, yeni multiple choice, varsa draft.
 const onAddClick = (event: Event) => {
     const draft = loadPageState<AddPageDraft>(PAGE_STATE_KEYS.draft, 'local')
-    if (!isAdmin.value && !draft) {
-        newPageClick()
-        return
-    }
-    const items = [{ name: 'New Page', click: () => newPageClick(PageType.PAGE) }]
-    if (isAdmin.value) {
-        items.push({ name: 'New Multiple Choice', click: () => newPageClick(PageType.MULTIPLE_CHOICE) })
-    }
+    const items = [
+        { name: 'New Page', click: () => newPageClick(PageType.PAGE) },
+        { name: 'New Multiple Choice', click: () => newPageClick(PageType.MULTIPLE_CHOICE) },
+    ]
     if (draft) {
         items.push({
             name: `${draft.title} (Draft)`,

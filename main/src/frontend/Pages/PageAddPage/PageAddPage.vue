@@ -92,7 +92,7 @@ const appStore = useAppStore()
 /* ==================
  * === INITIALIZE ===
  * ================== */
-// Multiple choice sayfalari (admin) simdilik sadece raw view ile olusturulur.
+// Multiple choice sayfalari simdilik sadece raw view ile olusturulur.
 const route = useRoute()
 const isMultipleChoice = route.query.type === PageType.MULTIPLE_CHOICE
 
