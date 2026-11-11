@@ -3,11 +3,11 @@ from fastapi import APIRouter, Response
 router = APIRouter()
 
 
-# Oturum sadece access_token cookie'sinden ibaret; silmek cikis icin yeterli.
-# DB'ye dokunmaz, auth gerektirmez (suresi dolmus cookie ile de cikilabilsin).
+# The session is just the access_token cookie; deleting it is enough to log out.
+# Does not touch the DB, needs no auth (so logout works with an expired cookie too).
 @router.post("/logout")
 def logout(response: Response):
-    # Silme, set_cookie ile ayni oznitelikleri tasimali (post_postGoogleLogin.py).
+    # Deletion must carry the same attributes as set_cookie (post_postGoogleLogin.py).
     response.delete_cookie(
         key="access_token",
         httponly=True,

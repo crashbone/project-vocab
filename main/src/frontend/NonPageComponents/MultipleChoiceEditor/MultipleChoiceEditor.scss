@@ -1,0 +1,154 @@
+// Question layout shared by the PageMultipleChoice game view and MultipleChoiceEditor.
+// The page root carries .mc-quiz (PageMultipleChoice always, PageAddPage for multiple choice).
+// Moved here from PageMultipleChoice.scss so both use one copy.
+.app-frame.page.mc-quiz {
+  // Navigation: same place in edit and game (below the question).
+  .content-nav {
+    padding-top: 12px;
+  }
+
+  .edit-question {
+    font-size: $font-size-title;
+  }
+
+  .question-block {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  @keyframes mc-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes mc-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+
+  .quiz-area {
+    position: relative;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  // The two-column .row look of edit mode, with any number of answers via grid.
+  .answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    .button {
+      min-width: 0;
+      word-break: break-word;
+      font-size: 16px;
+
+      .sparkles-component {
+        display: none;
+      }
+
+      &.correct {
+        outline: 3px solid #3F9E62;
+        outline-offset: -1px;
+        background-color: rgba(#3F9E62, 0.18);
+
+        &.picked {
+          animation: mc-pop 0.35s ease;
+        }
+      }
+
+      &.wrong {
+        outline: 3px solid $color-error;
+        outline-offset: -1px;
+        background-color: rgba($color-error, 0.18);
+        animation: mc-shake 0.4s ease;
+      }
+    }
+  }
+
+
+  // Disabled bottom bar button (game Pause, editor Save while lines are invalid).
+  .bottom-bar .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  // ---------- EDITOR ----------
+  .mc-editor {
+    .edit-question.invalid {
+      outline: 3px solid $color-error;
+      outline-offset: -1px;
+    }
+
+    .mc-invalid-count {
+      text-align: center;
+      color: $color-error;
+      font-size: $font-size-small;
+      font-weight: 700;
+    }
+
+    // Raw view: the error panel takes its height first, the textarea fills the rest (never under the bottom bar).
+    &.mc-editor-raw textarea.raw-mode {
+      flex: 1 1 0;
+      min-height: 80px;
+      height: auto;
+    }
+  }
+
+  .mc-error-panel {
+    flex-shrink: 0;
+    max-height: 40%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    // Only a soft tint; the red is carried by the error text.
+    background-color: rgba($color-error, 0.08);
+    color: $color-lilac-800;
+    font-size: $font-size-small;
+
+    .mc-error-text {
+      font-weight: 700;
+      color: $color-error;
+    }
+
+    // The line as typed: muted, on its own row.
+    .mc-error-line {
+      opacity: 0.6;
+      overflow-wrap: anywhere;
+    }
+
+    // Fixed example + copy button on one row.
+    .mc-error-fix {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+      padding: 4px 4px 4px 10px;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.6);
+
+      .mc-error-fix-text {
+        flex: 1 1 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+    }
+
+    .mc-error-apply-all {
+      align-self: flex-end;
+    }
+
+    .mc-error-more {
+      opacity: 0.8;
+    }
+  }
+}

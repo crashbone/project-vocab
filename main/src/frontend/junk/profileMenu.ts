@@ -6,13 +6,13 @@ import { showContextMenu } from '@/NonPageComponents/ContextMenu/contextMenu'
 import { sendLogoutRequest } from '@/wordManagement/logoutRequest'
 import { toLandingPage } from '@/junk/router'
 
-// TODO: backend'deki roles.py'den gelmeli; simdilik eski admin-bar kontrolu.
+// TODO: should come from the backend's roles.py; for now the old admin-bar check.
 export const isAdminUser = (): boolean => {
     const data = useAppStore().initialData
     return !!(data?.logged_in && data.user && (data as InitialDataWithUser).user.email === 'offcrashbone@gmail.com')
 }
 
-// Dashboard ve kelime sayfasindaki profil butonu icin ortak menu.
+// Shared menu for the profile button on the dashboard and the words page.
 export const openProfileMenu = (event: Event) => {
     const items = isAdminUser()
         ? [{ name: 'Deploy Frontend', click: onAdminClick }, { name: 'Logout', click: logout }]

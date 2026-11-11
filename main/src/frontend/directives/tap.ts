@@ -9,9 +9,9 @@
 
 const LONG_THRESHOLD_MS = 500
 const TAP_THRESHOLD_MS = 250
-// Parmak bu kadar px kayarsa scroll sayilir, long tap iptal edilir
+// If the finger moves this many px it counts as a scroll and the long tap is cancelled
 const MOVE_THRESHOLD_PX = 10
-// Vue sablonunda '@tap.long' yazilamaz ('.long' modifier sanilir); dinamik arguman ile:
+// '@tap.long' cannot be written in a Vue template ('.long' is parsed as a modifier); use a dynamic argument:
 //   @[LONG_TAP_EVENT]="onLongTap"
 export const LONG_TAP_EVENT = 'tap.long'
 
@@ -54,7 +54,7 @@ export default {
       }
     })
 
-    // Mobilde scroll baslayinca tarayici pointerup yerine pointercancel gonderir
+    // On mobile the browser sends pointercancel instead of pointerup once scrolling starts
     document.addEventListener('pointercancel', cancelPress)
 
     document.addEventListener('pointerup', (e: PointerEvent) => {

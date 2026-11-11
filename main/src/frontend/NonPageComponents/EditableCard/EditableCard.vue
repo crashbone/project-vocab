@@ -1,5 +1,5 @@
 <template>
-    <!-- Tiklaninca textarea'ya donen kart (edit modlari). Acilinca odaklanir, blur ile kapanir. -->
+    <!-- Card that turns into a textarea on click (edit modes). Focuses when opened, closes on blur. -->
     <ButtonX class="size80px editable-card" :class="{ 'edit-mode': editing }" :index="index"
              :shining_border_animation="false" @click="emit('update:editing', true)">
         <div class="button-content2">

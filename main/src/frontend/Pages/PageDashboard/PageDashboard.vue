@@ -16,7 +16,7 @@
                           @click="openSearch" />
                     <SvgX v-else class="pointer" url="/main/src/frontend/assets/svg/x.svg" :width="18" :height="18"
                           style="align-self: center;" @click="closeSearch" />
-                    <div v-if="initialData" class="profile-icon pointer" @click="openProfileMenu">{{ initialData.user.name[0] }}</div>
+                    <ProfileIcon />
                 </div>
             </div>
 
@@ -82,7 +82,6 @@ import type { InitialDataWithUser } from '@/junk/fetchInitialData';
 import { showContextMenu } from '@/NonPageComponents/ContextMenu/contextMenu'
 import { PageType } from '@/wordManagement/PageType';
 import type { PageModel } from '@/wordManagement/PageModel';
-import { openProfileMenu } from '@/junk/profileMenu';
 import { loadPageState, PAGE_STATE_KEYS } from '@/junk/pageStateService';
 import type { AddPageDraft } from '@/Pages/PageAddPage/addPageDraft';
 
@@ -94,7 +93,7 @@ const initialData = computed(() => {
 })
 const model = computed(() => appStore.dashboardModel)
 
-// En son calisilan sayfanin tarihine gore karsilama satiri.
+// Greeting line based on the date of the most recently practiced page.
 const welcomeText = computed(() => {
     const dashboard = model.value
     const lastEntryAt = dashboard
@@ -121,7 +120,7 @@ const closeSearch = () => {
     searchQuery.value = ''
 }
 
-// Sayfa adi + icerik: kelime sayfalarinda iki yuz, coktan secmelide soru ve siklar.
+// Page name + content: both sides on word pages, question and answers on multiple choice.
 const pageMatches = (page: PageModel, query: string) => {
     const texts = [
         page.name,
@@ -131,7 +130,7 @@ const pageMatches = (page: PageModel, query: string) => {
     return texts.some(t => t?.toLowerCase().includes(query))
 }
 
-// Arama doluyken gruplar yerine tek bir sonuc bolumu (en son calisilan once).
+// While searching, a single results section replaces the groups (most recently practiced first).
 const sections = computed(() => {
     const m = model.value
     if (!m) return []
@@ -158,7 +157,7 @@ const pageClick = (pageId: number) => {
 const newPageClick = (type: PageType = PageType.PAGE) => {
     router.push({ name: 'add_page', query: type === PageType.PAGE ? {} : { type } })
 }
-// + her zaman menu acar: yeni sayfa, yeni multiple choice, varsa draft.
+// + always opens a menu: new page, new multiple choice, draft if any.
 const onAddClick = (event: Event) => {
     const draft = loadPageState<AddPageDraft>(PAGE_STATE_KEYS.draft, 'local')
     const items = [

@@ -123,7 +123,7 @@ textarea, input[type=text] {
   field-sizing: content;
 }
 
-// Raw View metin alani (PageWords edit, PageAddPage, MultipleChoice edit).
+// Raw View text area (PageWords edit, PageAddPage, MultipleChoice edit).
 textarea.raw-mode {
   height: 100%;
   padding: 12px;
@@ -132,8 +132,8 @@ textarea.raw-mode {
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
 }
 
-// Words edit alanlari (PageWords + MultipleChoice edit): kart rengine gore textarea zemini.
-// PageWords.scss lazy yuklendigi icin buraya tasindi.
+// Words edit fields (PageWords + MultipleChoice edit): textarea background by card color.
+// Moved here because PageWords.scss is lazy loaded.
 input[type=text], textarea {
   min-width: 50px;
   word-break: break-all;
@@ -155,5 +155,26 @@ input[type=text], textarea {
     input[type=text], textarea {
       background: $color-cyan-100;
     }
+  }
+}
+
+// Small text button (e.g. "Apply" in the multiple choice error panel and in help tooltips).
+.small-button {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  background-color: white;
+  color: $color-lilac-700;
+  font: inherit;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+
+  &:disabled,
+  &.disabled {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
   }
 }

@@ -13,7 +13,7 @@ export class PageModel {
   timeSpentSeconds: number
   lastEntryAt: number
   type: PageType
-  // Sadece MULTIPLE_CHOICE sayfalarinda dolu; o zaman wordModels bostur.
+  // Filled only on MULTIPLE_CHOICE pages; wordModels is empty then.
   questions: MultipleChoiceQuestion[]
 
   constructor(pageJson: PageJSON, wordModels: WordModel[], questions: MultipleChoiceQuestion[] = []) {

@@ -1,4 +1,4 @@
-// Sayfa durumunu saklama. 'local' = kalıcı (draft), 'session' = sadece yenilemede geri gelir.
+// Page state storage. 'local' = persistent (draft), 'session' = restored only on reload.
 type StorageKind = 'local' | 'session';
 
 export const PAGE_STATE_KEYS = {
@@ -15,7 +15,7 @@ export function savePageState(key: string, value: unknown, kind: StorageKind): v
   try {
     storage(kind).setItem(key, JSON.stringify(value));
   } catch {
-    // depolama dolu / engelli: sessizce geç
+    // storage full / blocked: skip silently
   }
 }
 

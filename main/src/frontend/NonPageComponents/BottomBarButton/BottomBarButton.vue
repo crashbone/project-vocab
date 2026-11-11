@@ -1,9 +1,10 @@
 <template>
-    <!-- Alt bar pill'i. `items` verilmezse tek buton (icon / label / active), verilirse coklu secenek (grup). -->
+    <!-- Bottom bar pill. Without `items` a single button (icon / label / active), with `items` a multi-option group. -->
     <LiquidGlass class="bottom-bar-liquid-glass" :class="items ? 'bottom-bar-group' : 'bottom-bar-single'">
         <div class="liquid-glass-card-slot-content">
             <div v-for="(item, i) in list" :key="i" class="bottom-bar-button pointer"
-                 :class="{ 'text-only': !item.icon }" @click="item.click?.($event)">
+                 :class="{ 'text-only': !item.icon, 'slot-hidden': item.hidden, disabled: item.disabled }"
+                 @click="item.click?.($event)">
                 <transition name="modeSwitch-scale">
                     <div v-if="item.active" class="animation-overlay"></div>
                 </transition>
@@ -25,12 +26,15 @@ export type BottomBarItem = {
     iconSize?: number
     label?: string
     active?: boolean
+    // Keeps its slot but is invisible and not clickable (fixed positions across bar states).
+    hidden?: boolean
+    disabled?: boolean
     click?: (e: Event) => void
 }
 
 const props = defineProps<BottomBarItem & { items?: BottomBarItem[] }>()
 
-// Tek buton da ayni sablonla cizilir; tiklama kok LiquidGlass'a (fallthrough) baglanir.
+// A single button uses the same template; the click binds to the root LiquidGlass (fallthrough).
 const list = computed((): BottomBarItem[] => {
     if (props.items) return props.items
     return props.icon || props.label ? [{ icon: props.icon, iconSize: props.iconSize, label: props.label, active: props.active }] : []
@@ -38,8 +42,8 @@ const list = computed((): BottomBarItem[] => {
 </script>
 
 <style lang="scss">
-// Cancel / gorunum secici / Save tipi alt bar (PageWords edit, PageAddPage, MultipleChoice).
-// Sayfa stilleri lazy yuklendigi icin tek kopya burada.
+// Cancel / view picker / Save style bottom bar (PageWords edit, PageAddPage, MultipleChoice).
+// Single copy here because page styles are lazy loaded.
 .page .bottom-bar.edit-bottom-bar {
   display: flex;
   justify-content: space-evenly;
@@ -61,7 +65,29 @@ const list = computed((): BottomBarItem[] => {
     gap: 10px;
   }
 
-  // Tum pill'ler ayni yukseklikte (ikon + etiketli butonla esit): ikonsuz / etiketsizler de.
+  // Fixed-width, evenly spread group: same as the PageWords main bar (Export / Shuffle / Toggle All).
+  .bottom-bar-group.spread .liquid-glass-card-slot-content {
+    width: 270px;
+    padding-inline: 0;
+    gap: 0;
+  }
+
+  // Equal-width slots: the n-th item sits at the same x in every spread bar with n items.
+  .bottom-bar-group.spread .bottom-bar-button {
+    flex: 1 1 0;
+  }
+
+  .bottom-bar-button.slot-hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .bottom-bar-button.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  // All pills have the same height (equal to an icon + label button), including those without icon / label.
   .bottom-bar-button {
     position: relative;
     height: auto;
@@ -81,13 +107,13 @@ const list = computed((): BottomBarItem[] => {
     }
   }
 
-  // Ikonsuz (sadece yazi) grup secenekleri: yazi kisa oldugu icin overlay daire gibi kaliyordu.
-  // Yatay ic bosluk overlay'i Standard View'daki gibi yatay pill yapar; aradaki gap'in yerini tutar.
+  // Icon-less (text only) group options: with short text the overlay looked like a circle.
+  // Horizontal padding makes the overlay a horizontal pill like in Standard View; it replaces the gap.
   .bottom-bar-group .liquid-glass-card-slot-content:has(> .text-only) {
     gap: 0;
   }
 
-  // Ikonsuz secenekler ikon satiri kadar alcak: 61px yerine 44px.
+  // Icon-less options are shorter by the icon row: 44px instead of 61px.
   .bottom-bar-button.text-only {
     padding-inline: 12px;
     padding-block: 0;
@@ -99,7 +125,7 @@ const list = computed((): BottomBarItem[] => {
     }
   }
 
-  // Yuvarlak tek butonda overlay disari tasmasin: dairenin icinde kalsin.
+  // On a round single button the overlay must not overflow: keep it inside the circle.
   .bottom-bar-single {
     .liquid-glass-card-slot-content {
       position: relative;

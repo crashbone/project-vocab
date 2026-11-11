@@ -1,5 +1,5 @@
 <template>
-    <!-- ‹ n / N ›  Sayaca tiklaninca sadece n input'a doner; Enter/blur ile gidilir, Escape iptal. -->
+    <!-- ‹ n / N ›  Clicking the counter turns only n into an input; Enter/blur navigates, Escape cancels. -->
     <div class="question-nav" :class="{ inactive: disabled }">
         <div class="nav-button pointer" :class="{ disabled: disabled || index <= 0 }" @click="go(index - 1)">
             <SvgX url="/main/src/frontend/assets/svg/left-arrow.svg" :width="20" :height="20" />
@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 
-// allowNew: son sorudan ileri gidilebilir (index = total, yeni bos soru; edit modu).
+// allowNew: can go forward past the last question (index = total, new empty question; edit mode).
 const props = defineProps<{ index: number, total: number, disabled?: boolean, allowNew?: boolean }>()
 const emit = defineEmits<{ go: [index: number] }>()
 

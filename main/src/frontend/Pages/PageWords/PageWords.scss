@@ -1,5 +1,5 @@
 .page.words {
-  // Normal + secim barlari; edit bari BottomBarButton.vue'de (ortak).
+  // Normal + selection bars; the edit bar is in BottomBarButton.vue (shared).
   .bottom-bar:not(.edit-bottom-bar) {
     // width: 353px;
     margin: auto;
@@ -26,7 +26,7 @@
         padding-inline: 16px;
       }
 
-      // Secim bosken Delete basilamaz.
+      // Delete cannot be pressed while the selection is empty.
       &.disabled {
         opacity: 0.4;
         pointer-events: none;
@@ -43,7 +43,7 @@
   }
 }
 
-// Cince okunus karakterin ustunde (native <ruby> kart yuksekligine sayilmadigi icin span).
+// Chinese pinyin above the character (span, because native <ruby> is not counted in the card height).
 .page.words .r {
   display: inline-flex;
   flex-direction: column;

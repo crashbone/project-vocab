@@ -1,4 +1,5 @@
 import SvgX from '@/NonPageComponents/SvgX.vue'
+import ProfileIcon from "@/NonPageComponents/ProfileIcon/ProfileIcon.vue"
 import QuestionNav from "@/NonPageComponents/QuestionNav/QuestionNav.vue"
 import BottomBarButton from "@/NonPageComponents/BottomBarButton/BottomBarButton.vue"
 import EditableCard from "@/NonPageComponents/EditableCard/EditableCard.vue"
@@ -26,6 +27,7 @@ export const register = (app: App) => {
   app.component("Sparkles", Sparkles)
   app.component("SvgX", SvgX)
   app.component("QuestionNav", QuestionNav)
+  app.component("ProfileIcon", ProfileIcon)
   app.component("BottomBarButton", BottomBarButton)
   app.component("EditableCard", EditableCard)
   app.component("ButtonX", ButtonX)

@@ -89,7 +89,7 @@ const onItemClick = (item: ContextMenuItem) => {
     }
 }
 
-// Sag hizali menu: translate yok, tetikleyiciye yakin kosesinden buyuyerek acilir.
+// Right-aligned menu: no translate, grows open from the corner nearest the trigger.
 .context-menu-popup.align-end {
     animation-name: contextMenuPopInEnd;
 

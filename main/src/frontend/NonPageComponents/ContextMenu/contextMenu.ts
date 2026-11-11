@@ -10,7 +10,7 @@ interface ContextMenuState {
     visible: boolean
     triggerRect: DOMRect | null
     placement: 'top' | 'bottom'
-    // 'end': menu tetikleyicinin sag kenarina hizalanir (ekranin sag kenarindaki butonlar icin)
+    // 'end': menu aligns to the trigger's right edge (for buttons at the right edge of the screen)
     align: 'center' | 'end'
     offset: number
     items: ContextMenuItem[]
@@ -34,7 +34,7 @@ export function showContextMenu(opts: {
 }) {
     const e = opts.event
     if (e.type === 'contextmenu' && e instanceof MouseEvent) {
-        // Sag tik: menu imlecin oldugu noktada acilir; ekranin alt yarisindaysa imlecin ustunde
+        // Right click: menu opens at the cursor; in the lower half of the screen above the cursor
         contextMenuState.triggerRect = new DOMRect(e.clientX, e.clientY, 0, 0)
         contextMenuState.placement = opts.placement ?? (e.clientY > window.innerHeight / 2 ? 'top' : 'bottom')
     } else {

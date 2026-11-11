@@ -3,6 +3,9 @@
 
 export type Placement = 'top' | 'right' | 'bottom' | 'left'
 
+// Hover mode: how long the popover stays after the pointer leaves target / popover.
+const HOVER_HIDE_DELAY_MS = 150
+
 export enum ShowOn {
   Hover = 'hover',
   LongTap = 'longTap'
@@ -152,18 +155,30 @@ function hidePopover(state: PopoverState) {
 function setupTrigger(state: PopoverState) {
   const el = state.opts.target
   if (state.opts.showOn === ShowOn.Hover) {
+    // Hiding is delayed so the pointer can move from the target into the popover
+    // (e.g. to click a button in it); while over the popover it stays open.
+    let hideTimer: ReturnType<typeof setTimeout> | undefined
+    const cancelHide = () => clearTimeout(hideTimer)
     const onEnter = () => {
+      cancelHide()
       showPopover(state)
     }
     const onLeave = () => {
-      hidePopover(state)
+      cancelHide()
+      hideTimer = setTimeout(() => hidePopover(state), HOVER_HIDE_DELAY_MS)
     }
+    const popover = state.opts.content
     el.addEventListener('mouseenter', onEnter)
     el.addEventListener('mouseleave', onLeave)
+    popover.addEventListener('mouseenter', cancelHide)
+    popover.addEventListener('mouseleave', onLeave)
 
       ; (state as any)._cleanup = () => {
+        cancelHide()
         el.removeEventListener('mouseenter', onEnter)
         el.removeEventListener('mouseleave', onLeave)
+        popover.removeEventListener('mouseenter', cancelHide)
+        popover.removeEventListener('mouseleave', onLeave)
         hidePopover(state)
       }
   } else if (state.opts.showOn === ShowOn.LongTap) {
@@ -178,13 +193,13 @@ function setupTrigger(state: PopoverState) {
       document.addEventListener('mousedown', onClickOutside)
     }
 
-    // Metin secimi global 'user-select: none' ile kapali; touch olaylarinda preventDefault
-    // scroll'u engelledigi icin kullanilmaz. iOS'un uzun basma menusunu CSS ile kapat:
+    // Text selection is off globally via 'user-select: none'; preventDefault on touch events
+    // is not used because it blocks scrolling. Disable the iOS long-press menu via CSS:
     el.style.setProperty('-webkit-touch-callout', 'none')
     el.addEventListener('tap.long', handler)
 
-    // Fareyle sag tik da menuyu acar. Dokunmatikte uzun basma da 'contextmenu' tetikler;
-    // orada menu zaten 'tap.long' ile acildigi icin sadece fare icin ac.
+    // Right click with the mouse also opens the menu. On touch, a long press also fires 'contextmenu';
+    // there the menu is already opened by 'tap.long', so open it only for the mouse.
     let lastPointerType = ''
     const onPointerDown = (e: PointerEvent) => { lastPointerType = e.pointerType }
     const onContextMenu = (e: MouseEvent) => {

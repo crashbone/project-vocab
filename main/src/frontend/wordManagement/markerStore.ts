@@ -1,9 +1,9 @@
 import type { WordModel } from '@/wordManagement/WordModel'
 
-// Highlight (double click marker) kalici degildir -- backend'de `words` duz metindir.
-// Bu yuzden sayfa bazinda localStorage'da tutulur. Anahtar kelimenin kendisidir,
-// satir indeksi degil: edit modunda ekleme/cikarma yapilsa da birebir ayni kalan
-// kelimelerin isareti korunur, degisen kelime isaretini kaybeder.
+// Highlight (double click marker) is not persisted -- in the backend `words` is plain text.
+// So it is kept per page in localStorage. The key is the word itself,
+// not the line index: even after adds/removes in edit mode, words that stay exactly the same
+// keep their marker, a changed word loses it.
 const storageKey = (pageId: number) => `vocab:markers:${pageId}`
 
 export const wordMarkerKey = (word: WordModel): string => {
@@ -35,6 +35,6 @@ export const saveMarkers = (pageId: number, words: WordModel[]) => {
     }
     localStorage.setItem(storageKey(pageId), JSON.stringify(keys))
   } catch {
-    // kota/gizli mod: highlight sadece bu oturumda yasar
+    // quota/private mode: the highlight lives only in this session
   }
 }

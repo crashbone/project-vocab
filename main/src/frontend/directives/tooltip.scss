@@ -10,12 +10,14 @@ $borderTooltip: 1px solid $color-pastel-pink-250;
   transform: translateY(-2px);
   transition: opacity 0.25s ease, transform 0.25s ease;
   z-index: -1000;
+  pointer-events: none;
   letter-spacing: -0.025em;
 
   &.visible {
     opacity: 1;
     transform: translateY(0);
     z-index: 9999;
+    pointer-events: auto;
   }
 }
 
@@ -43,6 +45,30 @@ $borderTooltip: 1px solid $color-pastel-pink-250;
   font-size: 10px;
   color: $color-lilac-800;
   white-space: pre-wrap;
+}
+
+.v-tooltip__code {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: $color-pastel-pink-100;
+  color: $color-lilac-800;
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 10px;
+  white-space: pre;
+  overflow-x: auto;
+  user-select: text;
+}
+
+.v-tooltip__action {
+  align-self: flex-end;
+  // A bit bigger than the shared .small-button: the tooltip text itself is small.
+  padding: 6px 14px;
+  font-size: $font-size-small;
+}
+
+.v-tooltip__hint {
+  opacity: 0.8;
 }
 
 .v-tooltip__arrow {

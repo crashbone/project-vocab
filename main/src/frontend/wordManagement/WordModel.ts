@@ -17,9 +17,11 @@ export class WordModel {
   marker: boolean
   meaning: string
   mode: WordMode
-  // Cince okunus (sadece 'karakter | okunus | anlam' satirlarinda).
+  // Chinese pinyin (only on 'character | pinyin | meaning' lines).
   pinyin?: string
   word: string
+  // Raw line this word was parsed from (set by WordManager.setupWords).
+  sourceLine?: string
 
   constructor(obj: WordModelConstructor) {
     this.artikel = obj.artikel || ""

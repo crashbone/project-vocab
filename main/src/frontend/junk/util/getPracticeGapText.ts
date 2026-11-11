@@ -1,5 +1,5 @@
-// Dashboard'daki karsilama satiri. getDateTitle.ts ile ayni kademeler
-// (gun / ay / yil), ama cumle icinde okunacak sekilde bicimlenir.
+// Greeting line on the dashboard. Same steps as getDateTitle.ts
+// (day / month / year), but phrased to read inside a sentence.
 export const getPracticeGapText = (date: Date | undefined): string => {
   if (!date) {
     return "Let's start practicing!"

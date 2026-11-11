@@ -1,4 +1,4 @@
-// Backend'deki pages.type kolonunun degerleriyle birebir ayni olmali
+// Must match the values of the backend's pages.type column exactly
 // (post_addNewPageRequest.py: PAGE_TYPES).
 export enum PageType {
   PAGE = 'page',

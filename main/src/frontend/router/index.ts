@@ -41,9 +41,9 @@ const routes = [
     meta: { title: 'Okan | Software Developer' }
   },
 ]
-// Hot reload bu modulu yeniden calistirirsa ikinci bir router olusuyordu: `import router` kullanan yerler
-// (geri tusu -> toDashboard) adresi yeni router'la degistiriyor, ekrani cizen app ise eskisini dinliyordu
-// -> adres /dashboard olup sayfa degismiyordu. Sadece dev'de: ayni router ornegi yeniden kullanilir.
+// When hot reload re-ran this module a second router was created: code using `import router`
+// (back button -> toDashboard) changed the URL via the new router while the rendering app listened to the old one
+// -> the URL became /dashboard but the page did not change. Dev only: the same router instance is reused.
 const existing = import.meta.hot?.data.router as Router | undefined
 const router = existing ?? createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

@@ -1,26 +1,18 @@
 // PageMultipleChoice uses shared styles from
 // - Page.scss
 // - PageWithWords.scss (.page.words: top bar, .page-content-container-1)
-// - BottomBarButton.vue (.edit-bottom-bar), EditableCard.vue, main.scss (textarea.raw-mode)
+// - BottomBarButton.vue (.edit-bottom-bar), EditableCard.vue, main.scss (textarea.raw-mode),
+// - MultipleChoiceEditor.scss (.mc-quiz: question block / answers grid shared with the editor)
 
 .page.words.multiple-choice {
   // ---------- EDIT MODE ----------
-  // Alt bar: BottomBarButton.vue, kartlar: EditableCard.vue, raw-mode: main.scss.
-  // Iki satirli alt bar (oyun disi) icin icerige ayrilan alt bosluk: 16 + 36 (kullanilamaz alan) + 61 (Random/Play) + 44 (zorluk) + 10 aralik.
+  // Bottom bar: BottomBarButton.vue, cards: EditableCard.vue, raw-mode: main.scss.
+  // Bottom space reserved for the two-row bottom bar (outside the game): 16 + 36 (unusable space) + 61 (Random/Play) + 44 (difficulty) + 10 gap.
   &.two-row-bar .page-content-container-1 {
     padding-bottom: #{16px + 36px + 61px + 44px + 10px};
   }
 
-  // Gezinme: edit ve oyunda ayni yer (sorunun altinda).
-  .content-nav {
-    padding-top: 12px;
-  }
-
-  .edit-question {
-    font-size: $font-size-title;
-  }
-
-  // ---------- TIMER (sorunun solunda) ----------
+  // ---------- TIMER (left of the question) ----------
   .mc-timer {
     position: relative;
     flex-shrink: 0;
@@ -30,7 +22,7 @@
     justify-content: center;
     align-items: center;
 
-    // Gradyan halka (pembeden lilaya), 6px. --p: 0..100, template'ten gelir.
+    // Gradient ring (pink to lilac), 6px. --p: 0..100, set from the template.
     .mc-timer-ring {
       --w: 6px;
       position: absolute;
@@ -50,47 +42,30 @@
     }
   }
 
-  // ---------- GAME BOTTOM BAR (PageWords alt bari gibi LiquidGlass; tek satir) ----------
+  // ---------- GAME BOTTOM BAR (LiquidGlass like the PageWords bottom bar; single row) ----------
   .game-bottom-bar {
     align-items: center;
-    // Yukseklik icerikten: sabit 64px'te 61px'lik satir dikeyde ortalanip oyun disina gore birkac px kayiyordu.
+    // Height from content: with a fixed 64px the 61px row was centered vertically and shifted a few px versus outside the game.
     height: auto;
 
-    // Oyun disi: zorluk ustte, Random + Play altta.
-    // Iki satir; bar bottom'a sabit oldugu icin yukari dogru buyur.
+    // Outside the game: difficulty on top, Export / Shuffle / Play below.
+    // Two rows; grows upward because the bar is pinned to the bottom.
     &.idle {
       flex-direction: column;
       gap: 10px;
     }
 
-    // Oyun disi (Random | Play) ve oyun (Return | Pause/Resume) ayni satir: solda/sagda ayni hizada.
-    .game-bar-row {
-      display: flex;
-      justify-content: space-evenly;
-      align-self: stretch;
-      flex-grow: 1;
-    }
-
-    // Return sadece pause'da gorunur ama yer kaplamaya devam eder: Pause/Resume yerinden oynamaz.
-    .paused-only {
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
+    // .disabled: MultipleChoiceEditor.scss
   }
 
 
-  // ---------- CUSTOM PANEL (icerigin sonunda = alt barin hemen ustu, yumusak acilir) ----------
+  // ---------- CUSTOM PANEL (at the end of the content = right above the bottom bar, opens smoothly) ----------
   .custom-panel {
     display: grid;
     grid-template-rows: 0fr;
     opacity: 0;
     flex-shrink: 0;
-    margin-top: -16px; // kapaliyken ust bosluk da kapansin
+    margin-top: -16px; // collapse the top gap too while closed
     pointer-events: none;
     transition: grid-template-rows 0.25s ease, opacity 0.25s ease, margin-top 0.25s ease;
 
@@ -101,7 +76,7 @@
       pointer-events: auto;
     }
 
-    // Hazir zorluk: degerler gorunur, dokunulamaz.
+    // Preset difficulty: values are visible but not editable.
     &.locked .custom-panel-inner {
       opacity: 0.5;
       pointer-events: none;
@@ -150,7 +125,7 @@
           border-color: #D0455B;
         }
 
-        // Yukari/asagi oklari yok: telefonda basilamayacak kadar kucukler, yer de kapliyorlar.
+        // No up/down arrows: too small to tap on a phone, and they take up space.
         appearance: textfield;
         -moz-appearance: textfield;
 
@@ -164,13 +139,7 @@
   }
 
   // ---------- QUESTION + ANSWERS ----------
-  .question-block {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  // Sonraki soruya gecis: eski soru sola kayip solar, yenisi sagdan gelir.
+  // Next question transition: the old one slides left and fades, the new one comes from the right.
   .mc-question-enter-active,
   .mc-question-leave-active {
     transition: opacity 0.2s ease, transform 0.2s ease;
@@ -186,32 +155,12 @@
     transform: translateX(-24px);
   }
 
-  @keyframes mc-pop {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.08); }
-    100% { transform: scale(1); }
-  }
-
-  @keyframes mc-shake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-6px); }
-    40%, 80% { transform: translateX(6px); }
-  }
-
-  .quiz-area {
-    position: relative;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
   .question-row {
     display: flex;
     align-items: center;
     gap: 10px;
 
-    // Genislik icerikten degil satirdan gelsin; uzun soru asagi sarar.
+    // Width comes from the row, not the content; a long question wraps.
     .question {
       flex: 1 1 0;
     }
@@ -225,40 +174,6 @@
     font-weight: 600;
     line-height: 1.35;
     padding: 0 4px;
-  }
-
-  // Edit modundaki iki sutunlu .row gorunumu, grid ile istenen sayida sik.
-  .answers {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-
-    .button {
-      min-width: 0;
-      word-break: break-word;
-      font-size: 16px;
-
-      .sparkles-component {
-        display: none;
-      }
-
-      &.correct {
-        outline: 3px solid #3F9E62;
-        outline-offset: -1px;
-        background-color: rgba(#3F9E62, 0.18);
-
-        &.picked {
-          animation: mc-pop 0.35s ease;
-        }
-      }
-
-      &.wrong {
-        outline: 3px solid #D0455B;
-        outline-offset: -1px;
-        background-color: rgba(#D0455B, 0.18);
-        animation: mc-shake 0.4s ease;
-      }
-    }
   }
 
   // ---------- GAME OVER ----------

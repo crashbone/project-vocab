@@ -1,37 +1,16 @@
 <template>
-    <div class="app-frame page add_page">
+    <div class="app-frame page add_page" :class="{ 'mc-quiz': isMultipleChoice }">
         <!-- TOP BAR -->
         <PageWithWordsTopBar
                              :title="title"
                              :titleAdjustable="true"
                              :backHandler="onBackClick"
                              @update:title="title = $event">
-            <template v-if="isMultipleChoice" #right>
-                <SvgX v-tooltip="{
-                    title: 'How to write Multiple Choice',
-                    body: `One question per line (ENTER).
-Separate the question and its answers with:
-' | ' (one space, one '|', one space)
-The FIRST answer is the correct one, add as many as you like:
-Capital of France? | Paris | Berlin | Rome
-2 + 2 = ? | 4 | 3 | 5 | 22`
-                }" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
+            <template v-if="isMultipleChoice && viewMode === ViewMode.RAW" #right>
+                <SvgX v-tooltip="mcHelpTooltip" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
             </template>
-            <template v-else-if="viewMode === ViewMode.RAW" #right>
-                <SvgX v-tooltip="{
-                    title: 'How to use Raw View',
-                    body: `Separate two sides of the flash card with:
-'    ' (4 spaces) or
-' | ' (one space, one '|', one space)
-
-Separate new words with new line (ENTER):
-der Mann | Man
-die Frau | Woman
-der Apfel | Apple
-das Auto    Car
-das Buch    Book
-das Kind    Child`
-                }" class="pointer" url="/main/src/assets/svg/question.svg" :width="31" :height="31" />
+            <template v-else-if="!isMultipleChoice && viewMode === ViewMode.RAW" #right>
+                <SvgX v-tooltip="wordsHelpTooltip" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
             </template>
         </PageWithWordsTopBar>
 
@@ -39,8 +18,13 @@ das Kind    Child`
         <!---------------------------- CONTENT ---------------------------->
         <!----------------------------------------------------------------->
 
+        <!-- CONTENT: Multiple choice (same editor as PageMultipleChoice edit mode) -->
+        <MultipleChoiceEditor v-if="isMultipleChoice" ref="mcEditor" v-model="rawModeString"
+                              :rawView="viewMode === ViewMode.RAW"
+                              @update:rawView="viewMode = $event ? ViewMode.RAW : ViewMode.STANDARD" />
+
         <!-- CONTENT: Standard -->
-        <div v-if="viewMode === ViewMode.STANDARD" ref="content" class="page-content-container-1" @scroll="saveDraft">
+        <div v-else-if="viewMode === ViewMode.STANDARD" ref="content" class="page-content-container-1" @scroll="saveDraft">
             <template v-for="(word, index) in wordObjects" :key="index">
                 <div class="row">
                     <EditableCard v-for="wi in 2" :key="wi" :index="index"
@@ -61,13 +45,13 @@ das Kind    Child`
         </div>
 
         <div class="bottom-bar edit-bottom-bar">
-            <!-- Bos sol blok (AddPage'de Cancel yok): Save sagda kalsin. -->
+            <!-- Empty left block (AddPage has no Cancel): keeps Save on the right. -->
             <BottomBarButton />
-            <BottomBarButton :items="isMultipleChoice ? [] : [
+            <BottomBarButton :items="[
                 { icon: 'export', label: 'Standard View', active: viewMode === ViewMode.STANDARD, click: () => onViewModeChange(ViewMode.STANDARD) },
                 { icon: 'export', label: 'Raw View', active: viewMode === ViewMode.RAW, click: () => onViewModeChange(ViewMode.RAW) },
             ]" />
-            <BottomBarButton icon="export" label="Save" @click="onSaveClick" />
+            <BottomBarButton icon="export" label="Save" :class="{ disabled: mcInvalid }" @click="onSaveClick" />
         </div>
     </div>
 </template>
@@ -75,10 +59,14 @@ das Kind    Child`
 import router from "@/router";
 import { useAppStore } from "@/stores/appStore";
 import { sendAddNewPageRequest, type PostRequestDataType } from "@/wordManagement/addNewPageRequest";
-import { nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
 import { ViewMode } from "./ViewMode";
-import { WordManager } from "@/wordManagement/wordManager";
+import MultipleChoiceEditor from "@/NonPageComponents/MultipleChoiceEditor/MultipleChoiceEditor.vue";
+import { MULTIPLE_CHOICE_HELP_TOOLTIP } from "@/NonPageComponents/MultipleChoiceEditor/multipleChoiceHelp";
+import { WORDS_RAW_HELP_TOOLTIP } from "@/wordManagement/wordsHelp";
+import { useHelpTooltip, prependExample } from "@/composables/useHelpTooltip";
+import { WordManager, type WordRow } from "@/wordManagement/wordManager";
 import { PageType } from "@/wordManagement/PageType";
 import { useRoute } from "vue-router";
 import { toDashboard } from "@/junk/router";
@@ -92,26 +80,31 @@ const appStore = useAppStore()
 /* ==================
  * === INITIALIZE ===
  * ================== */
-// Multiple choice sayfalari simdilik sadece raw view ile olusturulur.
+// Multiple choice pages use MultipleChoiceEditor; rawModeString holds their text in both views.
 const route = useRoute()
 const isMultipleChoice = route.query.type === PageType.MULTIPLE_CHOICE
 
 const title = ref(isMultipleChoice ? 'New Multiple Choice' : 'New Page')
-const wordObjects = ref([{
+const wordObjects = ref<WordRow[]>([{
     w1: "",
     w1EditMode: false,
     w2: "",
     w2EditMode: false,
 }]);
 const rawModeString = ref('');
-const viewMode = ref(isMultipleChoice ? ViewMode.RAW : ViewMode.STANDARD)
+const mcEditor = useTemplateRef<InstanceType<typeof MultipleChoiceEditor>>('mcEditor')
+const wordsHelpTooltip = useHelpTooltip(WORDS_RAW_HELP_TOOLTIP, rawModeString,
+    (example) => { rawModeString.value = prependExample(rawModeString.value, example) })
+const mcHelpTooltip = useHelpTooltip(MULTIPLE_CHOICE_HELP_TOOLTIP, rawModeString,
+    (example) => mcEditor.value?.prependText(example))
+const viewMode = ref(ViewMode.STANDARD)
 const content = useTemplateRef<HTMLElement>('content')
 
 
 /* =============
  * === DRAFT ===
  * ============= */
-// Tek draft (localStorage). Dashboard menusunden "?draft=1" ile acilinca geri yuklenir.
+// Single draft (localStorage). Restored when opened from the dashboard menu with "?draft=1".
 const draft = route.query.draft ? loadPageState<AddPageDraft>(PAGE_STATE_KEYS.draft, 'local') : null
 if (draft) {
     title.value = draft.title
@@ -140,7 +133,7 @@ watch([title, wordObjects, rawModeString, viewMode], saveDraft, { deep: true })
 
 const clearDraft = () => clearPageState(PAGE_STATE_KEYS.draft, 'local')
 
-// Geri: icerik bos ise sormadan cik (draft silinir), degilse sor.
+// Back: if content is empty leave without asking (draft is deleted), otherwise ask.
 const onBackClick = () => {
     if (isEmpty()) {
         clearDraft()
@@ -208,35 +201,31 @@ watch(
  * === METHODS ===
  * =============== */
 const onViewModeChange = (vm: ViewMode) => {
+    // MultipleChoiceEditor converts between its views itself.
+    if (isMultipleChoice) {
+        viewMode.value = vm
+        return
+    }
     if (vm === ViewMode.RAW) {
         rawModeString.value = getRawModeTextFromInputs();
     }
     if (vm === ViewMode.STANDARD) {
-        const wordModels = WordManager.instance.setupWords(rawModeString.value);
-        const addPageWordObjects = wordModels.map(wm => {
-            return {
-                w1: wm.pinyin ? `${wm.word} | ${wm.pinyin}` : wm.word,
-                w1EditMode: false,
-                w2: wm.meaning,
-                w2EditMode: false,
-            }
-        })
-        wordObjects.value = addPageWordObjects
+        wordObjects.value = WordManager.instance.setupWordRows(rawModeString.value)
         onWordObjectsChanged();
     }
     viewMode.value = vm
 }
-const getRawModeTextFromInputs = () => {
-    // const nonEmptyWordObjects = wordObjects.value.filter(wObj => wObj.w1 !== "" || wObj.w2 !== "");
-    const result = wordObjects.value.map(wObj => {
-        return [wObj.w1, wObj.w2].join(" | ")
-    }).join("\n")
-    return result;
-}
+// Unchanged rows keep the user's source line; empty rows are not written.
+const getRawModeTextFromInputs = () => WordManager.instance.formatWordRows(wordObjects.value)
+
+// Multiple choice: save is blocked while any line is invalid or there is no question.
+const mcInvalid = computed(() => isMultipleChoice && (rawModeString.value.trim() === ''
+    || WordManager.instance.validateMultipleChoice(rawModeString.value).length > 0))
 
 const onSaveClick = () => {
+    if (mcInvalid.value) return
     let wordsString = "";
-    if (viewMode.value === ViewMode.RAW) {
+    if (isMultipleChoice || viewMode.value === ViewMode.RAW) {
         wordsString = rawModeString.value;
     } else if (viewMode.value === ViewMode.STANDARD) {
         wordsString = getRawModeTextFromInputs();

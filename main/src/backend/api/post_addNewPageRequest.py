@@ -3,6 +3,7 @@ from fastapi import APIRouter, Cookie, HTTPException, Depends
 from pydantic import BaseModel
 from psycopg2.extras import RealDictCursor
 from backend.jwt_handler import verify_app_jwt
+from backend.multiple_choice_validation import raise_if_invalid_multiple_choice
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")
@@ -45,6 +46,8 @@ def add_page_handler(postRequestData: PostRequestData, user=Depends(auth_require
         raise HTTPException(400, "Invalid input")
     if postRequestData.type not in PAGE_TYPES:
         raise HTTPException(400, "Invalid page type")
+    if postRequestData.type == "multiple_choice":
+        raise_if_invalid_multiple_choice(postRequestData.words)
 
     try:
         conn = get_db_connection()

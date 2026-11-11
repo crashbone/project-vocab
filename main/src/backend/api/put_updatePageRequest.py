@@ -3,6 +3,7 @@ from fastapi import APIRouter, Cookie, HTTPException, Depends
 from pydantic import BaseModel
 from psycopg2.extras import RealDictCursor
 from backend.jwt_handler import verify_app_jwt
+from backend.multiple_choice_validation import raise_if_invalid_multiple_choice
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")
@@ -46,6 +47,20 @@ def update_page_handler(updateRequestData: UpdateRequestData, user=Depends(auth_
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # The request carries no type: read it (ownership-checked) to validate multiple choice text.
+        cursor.execute("SELECT type FROM pages WHERE id = %s AND user_id = %s;",
+                       (updateRequestData.id, user['userid']))
+        existing = cursor.fetchone()
+        if not existing:
+            conn.close()
+            raise HTTPException(404, "Page not found or access denied")
+        if existing["type"] == "multiple_choice":
+            try:
+                raise_if_invalid_multiple_choice(updateRequestData.words)
+            except HTTPException:
+                conn.close()
+                raise
 
         # Same as addPage: psycopg2 writes the raw string into the 'jsonb'
         # column as a JSON scalar string.

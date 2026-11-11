@@ -1,150 +1,155 @@
 # project-vocab
 
-Kelime ezberleme uygulaması. Vue 3 (Composition API, `<script setup>`) + Pinia + vue-router
-frontend, FastAPI + psycopg2 + PostgreSQL backend. Tek geliştirici, tek repo.
+Vocabulary memorization app. Vue 3 (Composition API, `<script setup>`) + Pinia + vue-router
+frontend, FastAPI + psycopg2 + PostgreSQL backend. Single developer, single repo.
 
 ---
 
-# A. Mimari
+# A. Architecture
 
-## Çalıştırma
+## Running
 
-| ne | komut / dosya |
+| what | command / file |
 |---|---|
-| frontend (dev) | `npm run dev` → Vite, **port 443**, HTTPS (sertifika `config/vite/OS.ts`) |
-| tip kontrolü | `npm run type-check` (`vue-tsc`) |
+| frontend (dev) | `npm run dev` → Vite, **port 443**, HTTPS (certificate `config/vite/OS.ts`) |
+| type check | `npm run type-check` (`vue-tsc`) |
 | lint / format | `npm run lint`, `npm run format` |
 | backend | `main/src/backend/__main__.py` → uvicorn, port **5174**, HTTPS |
-| bağımlılıklar | `package.json`, `requirements.txt` |
+| dependencies | `package.json`, `requirements.txt` |
 
-### Sunucuları kullanıcı başlatır
+### The user starts the servers
 
-Frontend ve backend'i **Claude başlatmaz** — kullanıcıya hangi komutu yazacağını söyler.
-Gerektiğinde aynen bunu ilet (iki ayrı terminal):
+Claude does **not** start the frontend and backend — it tells the user which command to type.
+When needed, pass this on verbatim (two separate terminals):
 
-**Frontend** (repo kökünden):
+**Frontend** (from the repo root):
 ```
 cd C:\Users\okana\custom\github-projects-already-stored\project-vocab
 npm run dev
 ```
-→ `https://localhost` (port 443, adrese port yazmaya gerek yok).
+→ `https://localhost` (port 443, no need to type the port in the address).
 
-**Backend** (venv + `main\src` klasöründen):
+**Backend** (venv + from the `main\src` folder):
 ```
 cd C:\Users\okana\custom\github-projects-already-stored\project-vocab
 .\.venv\Scripts\Activate.ps1
 cd main\src
 python -m backend
 ```
-→ `https://localhost:5174`. Aktivasyon yerine tek satır da olur:
-`..\..\.venv\Scripts\python.exe -m backend` (yine `main\src` içinden).
+→ `https://localhost:5174`. A one-liner also works instead of activation:
+`..\..\.venv\Scripts\python.exe -m backend` (again from inside `main\src`).
 
-Tuzaklar:
-- **Backend `main\src` dışından başlatılmaz** — `__main__.py` hem `hidden/.env`'i hem
-  sertifikaları göreli yoldan okur.
-- `Activate.ps1` "betik çalıştırma devre dışı" derse:
+Pitfalls:
+- **The backend is not started outside `main\src`** — `__main__.py` reads both `hidden/.env`
+  and the certificates via relative paths.
+- If `Activate.ps1` says "running scripts is disabled":
   `Set-ExecutionPolicy -Scope Process RemoteSigned`.
-- Proxy'de `ECONNREFUSED /initialData` = backend ayakta değil, frontend sorunu değildir.
-- Sertifikalar mkcert (localhost / 127.0.0.1 / 192.168.178.26, 2028'e kadar geçerli).
-  Tarayıcı uyarıyorsa kök CA kurulu değildir: `winget install FiloSottile.mkcert` +
-  `mkcert -install`. Geçici çözümde `https://localhost` **ve** `https://localhost:5174`
-  ayrı ayrı kabul edilmeli.
+- `ECONNREFUSED /initialData` in the proxy = the backend is not up; it is not a frontend problem.
+- Certificates are mkcert (localhost / 127.0.0.1 / 192.168.178.26, valid until 2028).
+  If the browser warns, the root CA is not installed: `winget install FiloSottile.mkcert` +
+  `mkcert -install`. As a temporary workaround `https://localhost` **and** `https://localhost:5174`
+  must each be accepted separately.
 
-Vite `/api/*` isteklerini `https://<backend-ip>:5174` adresine proxy'ler ve `/api` önekini
-**siler** — yani frontend'deki `/api/addPage`, backend'deki `@router.post("/addPage")`'e düşer.
-`@` alias'ı `main/src/frontend` demektir.
+Vite proxies `/api/*` requests to `https://<backend-ip>:5174` and **strips** the `/api`
+prefix — so `/api/addPage` in the frontend lands on `@router.post("/addPage")` in the backend.
+The `@` alias means `main/src/frontend`.
 
-## Klasör haritası
+## Folder map
 
 ```
 main/src/frontend/
-  Pages/<PageX>/            sayfa bileşeni + kendi .scss'i (Dashboard, Words, AddPage,
-                            Landing, Loading, Portfolio) — rotalar: router/index.ts
-  NonPageComponents/        ButtonX (her yerde kullanılan kart/buton), SvgX, Tooltip,
+  Pages/<PageX>/            page component + its own .scss (Dashboard, Words, AddPage,
+                            Landing, Loading, Portfolio) — routes: router/index.ts
+  NonPageComponents/        ButtonX (card/button used everywhere), SvgX, Tooltip,
                             ConfirmationPopup, ContextMenu, LiquidGlass, Sparkles
-  wordManagement/           model kurulumu + API istekleri (aşağıda)
+  wordManagement/           model setup + API requests (below)
   stores/appStore.ts        Pinia: initialData, dashboardModel, loadInitialData, loadPages
-  directives/tap.ts         @tap / @tap.long direktifi, eşikler dosyanın başında sabit
-  junk/                     yardımcılar + scss değişkenleri (color-palette, variables)
+  directives/tap.ts         @tap / @tap.long directive, thresholds are constants at the top of the file
+  junk/                     helpers + scss variables (color-palette, variables)
 main/src/backend/
-  api/*.py                  endpoint başına bir dosya
+  api/*.py                  one file per endpoint
   jwt_handler.py            verify_app_jwt
   os.py, roles.py, db_util/
-pretendServer/project-vocab/   ESKİ AYNA — okunabilir, DÜZENLENMEZ.
+pretendServer/project-vocab/   OLD MIRROR — readable, NOT EDITED.
 ```
 
-## Veri modeli — en kritik nokta
+## Data model — the most critical point
 
-`pages` tablosu: `(id, user_id, name, description, words jsonb, time_spent_seconds, last_entry_at)`.
+`pages` table: `(id, user_id, name, description, words jsonb, time_spent_seconds, last_entry_at)`.
 
-**`words` tek bir düz metindir**, jsonb scalar string olarak saklanır:
-satırlar `\n` ile, kelime/anlam ayracı ` | ` (kabul edilen ayraçlar: `"\t"`, dört boşluk, `" | "`).
-Kelime bazında satır, id veya istatistik **yoktur**; `marker` gibi alanlar sadece frontend
-state'idir, kalıcı değildir.
+**`words` is a single plain text**, stored as a jsonb scalar string:
+lines separated by `\n`, word/meaning separator ` | ` (accepted separators: `"\t"`, four spaces, `" | "`).
+There are **no** per-word rows, ids or statistics; fields like `marker` are frontend
+state only, not persisted.
 
-Ayrıştırma tek noktadan yapılır: `WordManager.instance.setupWords(raw)` →
-`main/src/frontend/wordManagement/wordManager.ts:21`. Yeni bir parser yazma, bunu kullan.
+Parsing happens in one place: `WordManager.instance.setupWords(raw)` →
+`main/src/frontend/wordManagement/wordManager.ts:21`. Do not write a new parser, use this one.
 
-Görüntüleme modları `wordManagement/WordMode.ts` içindeki `WordMode` enum'u
+Display modes are the `WordMode` enum in `wordManagement/WordMode.ts`
 (`SHORT / LONG / MEANING`).
 
-## Backend kalıbı (bağlayıcı)
+## Backend pattern (binding)
 
-Her `api/*.py` dosyası **kendi kopyasını** taşır: `POSTGRES_*` env okuması,
-`get_db_connection()`, `auth_required()` (cookie'deki `access_token` → `verify_app_jwt`).
-Bu kasıtlı bir tekrardır; ortak modüle çıkarma. Yeni endpoint:
+Every `api/*.py` file carries **its own copy** of: the `POSTGRES_*` env reading,
+`get_db_connection()`, `auth_required()` (cookie `access_token` → `verify_app_jwt`).
+This duplication is intentional; do not extract it into a shared module. New endpoint:
 
-1. `api/<method>_<isim>.py` dosyası, aynı kalıp.
-2. `words` yazarken `json.dumps(...)` ile jsonb'ye ver (`post_addNewPageRequest.py:52`).
-3. Sahiplik her zaman sorgunun `WHERE ... AND user_id = %s` kısmında; `fetchone()` boşsa `404`.
-4. `__main__.py`'de import (`:6-11`) + `include_router` (`:34-39`).
+1. `api/<method>_<name>.py` file, same pattern.
+2. When writing `words`, pass it to jsonb with `json.dumps(...)` (`post_addNewPageRequest.py:52`).
+3. Ownership always lives in the query's `WHERE ... AND user_id = %s` part; if `fetchone()` is empty, `404`.
+4. Import in `__main__.py` (`:6-11`) + `include_router` (`:34-39`).
 
-Frontend tarafı: `wordManagement/<isim>Request.ts`, `addNewPageRequest.ts` kalıbı — `fetch`,
-`Promise<PostRequestResponse>`, hata fırlatmaz, `{ success: false, error }` döndürür.
+Frontend side: `wordManagement/<name>Request.ts`, following the `addNewPageRequest.ts` pattern — `fetch`,
+`Promise<PostRequestResponse>`, does not throw, returns `{ success: false, error }`.
 
 ---
 
-# B. Kurallar
+# B. Rules
 
-## Çalışma disiplini
+## Working discipline
 
-1. **Authority sırası**: kullanıcı talimatı > onaylı kurallar > bu dosya > koddaki mevcut
-   pattern > genel konvansiyon.
-2. **En yakın mevcudu kullan**, paralel pattern uydurma. En küçük değişikliği yap; istenmeyen
-   refactor yok.
-3. **Belirsizlikte dur, sor.** Yeni mimari karar gerekiyorsa somut seçenek + artı/eksi sun ve
-   açık onay bekle. Sessizlik veya üretilen kodun kabulü onay sayılmaz.
-4. **Statik dosya haritası tutma** — bayatlar. Yukarıdaki harita yön içindir; kesin bilgi için
-   Grep/Glob ile keşfet.
-5. **Kural durumu etiketi**: sadece *Confirmed* bağlayıcıdır; *Observed / Legacy / Pending*
-   yalnızca nottur.
-6. **Değişiklik sonrası diff'i bu kurallara karşı kontrol et.**
-7. **Uzun iş akışı dokümanları @import edilmez** — sadece o iş yapılırken okunur.
+1. **Authority order**: user instruction > approved rules > this file > existing pattern in
+   the code > general convention.
+2. **Use the closest existing thing**, do not invent a parallel pattern. Make the smallest change;
+   no unrequested refactors.
+3. **When in doubt, stop and ask.** If a new architectural decision is needed, present concrete
+   options + pros/cons and wait for explicit approval. Silence or acceptance of generated code is
+   not approval.
+4. **Do not keep a static file map** — it goes stale. The map above is for orientation; for exact
+   information discover with Grep/Glob.
+5. **Rule status label**: only *Confirmed* is binding; *Observed / Legacy / Pending* are
+   notes only.
+6. **After a change, check the diff against these rules.**
+7. **Long workflow documents are not @imported** — they are read only while doing that work.
 
-## Soru disiplini
+## Question discipline
 
 8. **K1 / K2 / K3**
-   - K1 (cevabı koddan veya kuraldan belli) → sorma; karar ver ve "Varsayımlar"a yaz.
-   - K2 (mimari trade-off) → sor; cevap gelmezse kendi önerinle devam et ve Varsayımlar'a yaz.
-   - K3 (kullanıcının tasarım/ürün niyeti, koddan türetilemez) → **asla tahmin etme, sor.**
-9. **Soru bütçesi**: bir işte en fazla 4 soru. Az sormak makbuldür; bütçeyi doldurmak hedef değil.
-10. **Sormadan önce dedup**: soru bu dosyada veya mem0'da
-    (`python ~/.claude/mem0/hooks/recall.py "<anahtar kelimeler>"`, salt okunur) cevaplanmışsa
-    K1'e düşer ve sorulmaz.
+   - K1 (answer is clear from the code or a rule) → do not ask; decide and write it under "Assumptions".
+   - K2 (architectural trade-off) → ask; if no answer comes, continue with your own proposal and
+     write it under Assumptions.
+   - K3 (the user's design/product intent, not derivable from the code) → **never guess, ask.**
+9. **Question budget**: at most 4 questions per task. Asking less is better; filling the budget is
+   not a goal.
+10. **Dedup before asking**: if the question is answered in this file or in mem0
+    (`python ~/.claude/mem0/hooks/recall.py "<keywords>"`, read-only), it falls to K1 and is
+    not asked.
 
-## Ajan / doğrulama
+## Agents / verification
 
-11. **Subagent context yalıtımı**: subagent raporlarının içeriği ana oturuma çekilmez — subagent
-    karar + en fazla 3 satır not + dosya yolu döndürür. Maliyet çağrı başına sabit değil,
-    kümülatiftir.
-12. **Ölçülmeyen doğrulanmamıştır**: koda bakıp "doğru görünüyor" demek doğrulama değildir.
-    Çalıştırılmadıysa öyle söylenir.
-13. **2 tur limiti**: aynı sorunu düzeltmek için en fazla 2 tur; üçüncüde dur ve kullanıcıya sor.
+11. **Subagent context isolation**: the contents of subagent reports are not pulled into the main
+    session — a subagent returns a decision + at most 3 lines of notes + a file path. The cost is not
+    fixed per call, it is cumulative.
+12. **Unmeasured is unverified**: looking at code and saying "looks right" is not verification.
+    If it was not run, say so.
+13. **2-round limit**: at most 2 rounds to fix the same problem; on the third, stop and ask the user.
 
-## Projeye özel
+## Project-specific
 
-14. **Merkezi tip/sabit dosyası**: enum ve eşik sabitleri (`WordMode`, `DOUBLE_CLICK_MS`, tap
-    eşikleri) dağınık değil tek yerde tutulur.
-15. **Backend endpoint kalıbı bağlayıcı** (yukarıdaki 4 adım) — paralel bir yapı kurulmaz.
-    Frontend'de doğrudan alıcısı belli iletişim prop/emit ile gider; store'a global state
-    eklenmez.
+14. **Central type/constant file**: enums and threshold constants (`WordMode`, `DOUBLE_CLICK_MS`, tap
+    thresholds) are kept in one place, not scattered.
+15. **The backend endpoint pattern is binding** (the 4 steps above) — no parallel structure is built.
+    In the frontend, communication with a known direct recipient goes via props/emits; no global
+    state is added to the store.
+16. **English only**: all code comments, docs and identifiers are in English. No Turkish in the
+    codebase.

@@ -8,20 +8,7 @@
                              :backDisabled="selectionMode || editMode"
                              @update:title="editTitle = $event">
             <template v-if="editMode && editViewMode === ViewMode.RAW" #right>
-                <SvgX v-tooltip="{
-                    title: 'How to use Raw View',
-                    body: `Separate two sides of the flash card with:
-'    ' (4 spaces) or
-' | ' (one space, one '|', one space)
-
-Separate new words with new line (ENTER):
-der Mann | Man
-die Frau | Woman
-der Apfel | Apple
-das Auto    Car
-das Buch    Book
-das Kind    Child`
-                }" class="pointer" url="/main/src/assets/svg/question.svg" :width="31" :height="31" />
+                <SvgX v-tooltip="wordsHelpTooltip" class="pointer" url="/main/src/frontend/assets/svg/question.svg" :width="31" :height="31" />
             </template>
             <template v-else #right>
                 <template v-if="!selectionMode && !editMode">
@@ -29,7 +16,7 @@ das Kind    Child`
                           @click="enterEditMode" />
                     <SvgX class="pointer" url="/main/src/frontend/assets/svg/check.svg" :width="28" :height="28"
                           @click="enterSelectionMode" />
-                    <div v-if="userInitial" class="pointer profile-icon" @click="openProfileMenu">{{ userInitial }}</div>
+                    <ProfileIcon />
                 </template>
             </template>
         </PageWithWordsTopBar>
@@ -128,13 +115,15 @@ import { dynamicHeightSetUtil } from "@/junk/dynamicHeightSetUtil";
 import { toDashboard } from "@/junk/router";
 import { shuffle } from "@/junk/util/shuffle";
 import type { WordModel } from "@/wordManagement/WordModel";
-import { WordManager } from "@/wordManagement/wordManager";
+import { showExportPopup } from "@/junk/exportPopup";
+import { WordManager, type WordRow } from "@/wordManagement/wordManager";
 import { applyMarkers, saveMarkers } from "@/wordManagement/markerStore";
 import { LONG_TAP_EVENT } from "@/directives/tap";
 import { sendUpdatePageRequest } from "@/wordManagement/updatePageRequest";
 import PageWithWordsTopBar from "@/NonPageComponents/PageWithWordsTopBar/PageWithWordsTopBar.vue";
-import { openProfileMenu } from "@/junk/profileMenu";
 import { savePageState, loadPageState, clearPageState, PAGE_STATE_KEYS } from "@/junk/pageStateService";
+import { WORDS_RAW_HELP_TOOLTIP } from "@/wordManagement/wordsHelp";
+import { useHelpTooltip, prependExample } from "@/composables/useHelpTooltip";
 
 enum ViewMode {
     STANDARD = 0,
@@ -149,14 +138,14 @@ const appStore = useAppStore()
 
 const title = ref('');
 const wordRefs = ref([]);
-// Kendi cift tik esigimiz: native @dblclick'i isletim sistemi (~500ms) belirliyordu
-// ve degistirilemiyordu. tap.ts:10-11'deki esik sabiti kalibina uygun.
+// Our own double click threshold: native @dblclick was set by the OS (~500ms)
+// and could not be changed. Follows the threshold constant pattern in tap.ts:10-11.
 const DOUBLE_CLICK_MS = 230;
-// Tek tik bu sure kadar bekletilir: cift tik ihtimali varken mod ilerletilmesin.
+// A single click is delayed this long: do not advance the mode while a double click is possible.
 let singleClickTimer: ReturnType<typeof setTimeout> | undefined;
 let pendingClickIndex = -1;
 const editMode = ref(false);
-// Kelime listesi / edit listesi (ikisi ayni anda render edilmez, ref ortak).
+// Word list / edit list (never rendered at the same time, shared ref).
 const listContainer = useTemplateRef<HTMLElement>('listContainer');
 const props = defineProps({
     pageId: String, // it has to be string, because url param
@@ -173,7 +162,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-    // Uygulama icinde cikis: durum silinir (yenilemede unmount calismaz, durum kalir).
+    // Leaving within the app: state is cleared (unmount does not run on reload, so state stays).
     if (props.pageId) clearPageState(PAGE_STATE_KEYS.words(props.pageId), 'session')
     onStopRecording()
     clearTimeout(singleClickTimer)
@@ -190,17 +179,13 @@ const page = computed((): PageModel | undefined => {
 watch(page, (newPage) => {
     if (newPage) {
         title.value = newPage.name
-        // Sayfa (yeniden) yuklendiginde kayitli highlight'lar kelime eslesmesiyle geri konur.
+        // When the page (re)loads, saved highlights are restored by matching words.
         applyMarkers(newPage.id, newPage.wordModels)
     }
 }, { immediate: true })
 
-const userInitial = computed(() => {
-    const data = appStore.initialData
-    return data?.logged_in && data.user ? data.user.name[0] : ''
-})
 
-// Hece sayisi karakter sayisina esitse her hece kendi karakterinin ustunde; degilse null (tek parca).
+// If syllable count equals character count each syllable sits above its character; otherwise null (one piece).
 const pinyinParts = (word: WordModel) => {
     const chars = Array.from(word.word)
     const syllables = (word.pinyin ?? '').split(/\s+/).filter(x => x !== '')
@@ -212,7 +197,7 @@ const pinyinParts = (word: WordModel) => {
 /* ==================
  * === PAGE STATE ===
  * ================== */
-// Sadece yenilemede geri gelir (sessionStorage): mod, kelime sirasi/modlari, scroll, edit durumu.
+// Restored only on reload (sessionStorage): mode, word order/modes, scroll, edit state.
 type WordsPageState = {
     modeWords: WordMode
     words: { key: string, mode: WordMode }[]
@@ -243,7 +228,7 @@ const saveState = () => {
 const restoreState = (p: PageModel) => {
     const state = loadPageState<WordsPageState>(PAGE_STATE_KEYS.words(p.id), 'session')
     if (!state) return
-    // Kayitli siraya gore yeniden diz; eslesmeyen kelimeler sona.
+    // Reorder by the saved order; unmatched words go last.
     const pool = [...p.wordModels]
     const ordered: WordModel[] = []
     state.words.forEach(({ key, mode }) => {
@@ -301,32 +286,24 @@ const toggleSelection = (i: number) => {
  * ================= */
 
 const editTitle = ref('')
-const editWordObjects = ref<{ w1: string, w1EditMode: boolean, w2: string, w2EditMode: boolean }[]>([])
+const editWordObjects = ref<WordRow[]>([])
 const editRawModeString = ref('')
+const wordsHelpTooltip = useHelpTooltip(WORDS_RAW_HELP_TOOLTIP, editRawModeString,
+    (example) => { editRawModeString.value = prependExample(editRawModeString.value, example) })
 const editViewMode = ref(ViewMode.STANDARD)
 
 const enterEditMode = () => {
     if (!page.value) return
     scrollTopBeforeEdit = listContainer.value?.scrollTop ?? 0
     editTitle.value = page.value.name
-    editWordObjects.value = page.value.wordModels.map(wm => {
-        const word = wm.hasArtikel ? `${wm.artikel} ${wm.word}` : wm.word
-        // Okunus sol kutuda kalir ki kaydederken kaybolmasin ('karakter | okunus').
-        const left = wm.pinyin ? `${word} | ${wm.pinyin}` : word
-        return {
-            w1: left,
-            w1EditMode: false,
-            w2: wm.meaning,
-            w2EditMode: false,
-        }
-    })
+    editWordObjects.value = page.value.wordModels.map(wm => WordManager.instance.wordRowFromModel(wm))
     editViewMode.value = ViewMode.STANDARD
     editRawModeString.value = ''
     onEditWordObjectsChanged()
     editMode.value = true
 }
 
-// Edit'e girmeden onceki liste konumu; Cancel / Save sonrasi kullanici kaldigi yere doner.
+// List position before entering edit; after Cancel / Save the user returns to where they were.
 let scrollTopBeforeEdit = 0
 
 const exitEditMode = () => {
@@ -336,7 +313,7 @@ const exitEditMode = () => {
     })
 }
 
-// Uzun basma menusundeki Edit: edit modu acilir, o kelimenin satirina gidilir ve sol kutusu duzenlenir.
+// Edit in the long-press menu: opens edit mode, scrolls to that word's row and edits its left box.
 const editWordAt = (i: number) => {
     enterEditMode()
     nextTick().then(() => {
@@ -352,25 +329,14 @@ const onEditViewModeChange = (vm: ViewMode) => {
         editRawModeString.value = getEditRawModeTextFromInputs()
     }
     if (vm === ViewMode.STANDARD) {
-        const wordModels = WordManager.instance.setupWords(editRawModeString.value)
-        editWordObjects.value = wordModels.map(wm => ({
-            w1: wm.pinyin ? `${wm.word} | ${wm.pinyin}` : wm.word, w1EditMode: false,
-            w2: wm.meaning, w2EditMode: false,
-        }))
+        editWordObjects.value = WordManager.instance.setupWordRows(editRawModeString.value)
         onEditWordObjectsChanged()
     }
     editViewMode.value = vm
 }
 
-const getEditRawModeTextFromInputs = () => {
-    // Bos satirlar (ozellikle listenin sonundaki bos giris satiri) raw metne yazilmaz,
-    // yoksa geri donuste ' | ' satiri bos bir kelime olarak ayrisir.
-    return editWordObjects.value
-        .map(wObj => ({ w1: wObj.w1.trim(), w2: wObj.w2.trim() }))
-        .filter(wObj => wObj.w1 !== '' || wObj.w2 !== '')
-        .map(wObj => (wObj.w2 === '' ? wObj.w1 : `${wObj.w1} | ${wObj.w2}`))
-        .join('\n')
-}
+// Unchanged rows keep the user's source line; empty rows (e.g. the trailing input row) are not written.
+const getEditRawModeTextFromInputs = () => WordManager.instance.formatWordRows(editWordObjects.value)
 
 const onEditWordObjectsChanged = () => {
     if (editWordObjects.value.some(w => w.w1EditMode || w.w2EditMode)) return
@@ -393,7 +359,7 @@ const onEditWordObjectsChanged = () => {
 }
 
 watch(editWordObjects, () => onEditWordObjectsChanged(), { deep: true })
-// Ilk yuklemede kayitli durum bir kez geri konur (tanimlar yukarida hazir olsun diye burada).
+// On first load the saved state is restored once (placed here so the definitions above are ready).
 watch(page, (newPage) => {
     if (newPage && !stateRestored) {
         stateRestored = true
@@ -402,8 +368,8 @@ watch(page, (newPage) => {
 }, { immediate: true })
 watch(() => [page.value?.wordModels, page.value?.modeWords, editMode.value, editTitle.value, editWordObjects.value, editRawModeString.value, editViewMode.value], saveState, { deep: true })
 
-// Uzun basma menusundeki Delete ve secim modundaki Delete ortak yolu.
-// Kalan kelimeler ekrandaki siralariyla yeniden yazilir (export ile ayni serilestirme).
+// Shared path for Delete in the long-press menu and Delete in selection mode.
+// Remaining words are rewritten in their on-screen order (same serialization as export).
 const deleteWords = async (indices: Set<number>) => {
     if (!page.value || indices.size === 0) return
 
@@ -458,12 +424,12 @@ const onEditSaveClick = async () => {
         return
     }
 
-    // Ekranda hangisi acikssa dogru kaynak odur -- onEditViewModeChange ile ayni secim.
+    // Whichever view is open on screen is the source of truth -- same choice as onEditViewModeChange.
     const wordsString = editViewMode.value === ViewMode.RAW
         ? editRawModeString.value
         : getEditRawModeTextFromInputs()
 
-    // Standard modda son satir her zaman bos bir ekleme satiridir.
+    // In Standard mode the last row is always an empty add row.
     const words = wordsString.replace(/\n+$/, '')
 
     editSaving.value = true
@@ -476,7 +442,7 @@ const onEditSaveClick = async () => {
     editSaving.value = false
 
     if (!res.success) {
-        // Edit mode acik kalir, kullanici yazdigini kaybetmez.
+        // Edit mode stays open, so the user does not lose their input.
         showConfirmationPopup({
             title: `Could not save: ${res.error ?? 'unknown error'}`,
             buttons: [{ name: 'OK', click: closeConfirmationPopup }],
@@ -528,34 +494,7 @@ const exportWords = (type: 'marked' | 'selected' | 'all') => {
     }
     const text = WordManager.instance.formatWordsForExport(words)
 
-    const copyLabel = 'Copy'
-    showConfirmationPopup({
-        title: `${words.length} words`,
-        buttons: [
-            {
-                name: copyLabel,
-                click: async () => {
-                    // TODO: backend/request/response related part
-                    await navigator.clipboard.writeText(text)
-                    closeConfirmationPopup()
-                },
-            },
-            {
-                name: 'Download',
-                click: () => {
-                    // TODO: backend/request/response related part
-                    const blob = new Blob([text], { type: 'text/plain' })
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `${title.value || 'words'}.txt`
-                    a.click()
-                    URL.revokeObjectURL(url)
-                    closeConfirmationPopup()
-                },
-            },
-        ],
-    })
+    showExportPopup(`${words.length} words`, text, title.value || 'words')
 }
 
 
@@ -563,11 +502,11 @@ const exportWords = (type: 'marked' | 'selected' | 'all') => {
  * === METHODS ===
  * =============== */
 
-// Uzun basmayi takip eden click (ayni hareketin parmak kaldirisi) kelimenin modunu degistirmesin.
-// Bir sonraki pointerdown bayragi temizler: sonraki normal tiklamalar etkilenmez.
+// The click following a long press (lifting the finger of the same gesture) must not change the word's mode.
+// The next pointerdown clears the flag: later normal clicks are unaffected.
 let suppressNextClick = false
 
-// Fareyle sag tik da menuyu acar; dokunmatikte uzun basma zaten 'tap.long' ile aciyor.
+// Right click with the mouse also opens the menu; on touch a long press already opens it via 'tap.long'.
 let lastPointerType = ''
 
 const onWordLongTap = (event: Event, i: number) => {
@@ -599,7 +538,7 @@ const wordClick = async (i: number) => {
         return
     }
 
-    // Ayni kelimeye esik icinde ikinci tik: bekleyen tek tik iptal, sadece marker degisir.
+    // Second click on the same word within the threshold: the pending single click is cancelled, only the marker changes.
     if (singleClickTimer !== undefined && pendingClickIndex === i) {
         clearTimeout(singleClickTimer);
         singleClickTimer = undefined;
@@ -608,7 +547,7 @@ const wordClick = async (i: number) => {
         return;
     }
 
-    // Baska bir kelimeye gecildiyse bekleyen tik hemen uygulanir, kaybolmaz.
+    // If another word is clicked, the pending click is applied immediately instead of being lost.
     if (singleClickTimer !== undefined) {
         clearTimeout(singleClickTimer);
         applySingleClick(pendingClickIndex);

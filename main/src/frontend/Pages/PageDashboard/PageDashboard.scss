@@ -150,8 +150,8 @@ html:not(.mobile) {
       gap: 12px;
     }
 
-    // Sol hucreler tasarsa "..." ile kirpilir; sag hucreler hic kirpilmaz.
-    // ust taraftaki `* { flex-shrink: 0 }` yuzunden shrink acikca geri veriliyor.
+    // Left cells are truncated with "..." on overflow; right cells are never truncated.
+    // shrink is restored explicitly because of the `* { flex-shrink: 0 }` above.
     .top-left,
     .bottom-left {
       flex-shrink: 1;
