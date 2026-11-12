@@ -472,7 +472,8 @@ const skills = [
 ];
 </script>
 <style>
-body:has(.portfolio) {
+body:has(.portfolio),
+html:not(.mobile) body:has(.portfolio) {
     width: 100%;
     padding: unset !important;
 }
