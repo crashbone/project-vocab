@@ -11,6 +11,19 @@ export default defineConfig({
     vue(),
     vueJsx(),
     tailwindcss(),
+    // Serves /portfolio with the correct <title> from the start, so it is right even without JS
+    // and does not flash "Project Vocab" before the router sets it.
+    // NOTE: works only with the dev server (`npm run dev`). In a build there is no request URL,
+    // so dist/index.html keeps the default title; a build would need e.g. a separate
+    // dist/portfolio/index.html with this title emitted in generateBundle.
+    // Keep the title in sync with meta.title of the portfolio route in router/index.ts.
+    {
+      name: 'route-title',
+      transformIndexHtml(html, ctx) {
+        if (ctx.originalUrl?.startsWith('/portfolio'))
+          return html.replace(/<title>.*<\/title>/, '<title>Okan | Software Developer</title>');
+      },
+    },
   ],
   optimizeDeps: {
     include: ['vue', 'vue-router', 'pinia', '@fontsource/nunito']

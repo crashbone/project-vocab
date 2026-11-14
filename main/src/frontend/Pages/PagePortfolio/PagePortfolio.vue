@@ -24,7 +24,7 @@
                     <button v-for="option in languages" :key="option.code"
                             type="button"
                             :aria-pressed="lang === option.code"
-                            :aria-label="option.label"
+                            :lang="option.code"
                             @click="setLang(option.code)"
                             :class="[
                                 'flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer',
@@ -122,7 +122,7 @@
                        :href="game.link" target="_blank" rel="noopener"
                        class="group block">
                         <div class="overflow-hidden bg-gray-100 mb-4 border border-gray-100 rounded-[40px]">
-                            <img :src="game.image" :alt="game.title"
+                            <img :src="game.image" alt=""
                                  class="w-full h-[280px] object-cover object-top transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <h4 class="text-xl font-bold tracking-tight">{{ game.title }}</h4>
@@ -150,7 +150,7 @@
                     <a href="https://steamcommunity.com/sharedfiles/filedetails?id=1293751909" target="_blank"
                        rel="noopener" class="group block">
                         <div class="overflow-hidden bg-gray-100 mb-4 border border-gray-100 rounded-[40px]">
-                            <img src="/main/src/frontend/assets/img/portfolio/dst.jpg" alt="Don't Starve Together Mod"
+                            <img src="/main/src/frontend/assets/img/portfolio/dst.jpg" alt=""
                                  class="w-full h-[280px] object-contain object-center transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
@@ -178,7 +178,7 @@
                     <a href="https://crashbone.com" target="_blank" rel="noopener" class="group block">
                         <div class="overflow-hidden bg-gray-100 mb-4 border border-gray-100 rounded-[40px]">
                             <img src="/main/src/frontend/assets/img/portfolio/projectvocab-dashboard.png"
-                                 alt="crashbone.com"
+                                 alt=""
                                  class="w-full h-[280px] object-cover object-top transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
@@ -196,7 +196,7 @@
                     <div class="group block">
                         <div class="overflow-hidden bg-gray-100 mb-4 border border-gray-100 rounded-[40px]">
                             <img src="/main/src/frontend/assets/img/portfolio/duruvidanjor.jpg"
-                                 alt="mugladuruvidanjor.com"
+                                 alt=""
                                  class="w-full h-[280px] object-cover object-center transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
@@ -211,7 +211,7 @@
                     <div class="group block">
                         <div class="overflow-hidden bg-gray-100 mb-4 border border-gray-100 rounded-[40px]">
                             <img src="/main/src/frontend/assets/img/portfolio/ai-environment.jpg"
-                                 :alt="t.aiEnv.title"
+                                 alt=""
                                  class="w-full h-[280px] object-cover object-center transform group-hover:scale-105 transition-transform duration-700" />
                         </div>
                         <div class="space-y-2">
