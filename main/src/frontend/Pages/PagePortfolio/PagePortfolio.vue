@@ -369,7 +369,8 @@ const messages = {
         },
         capabilities: {
             lead: 'Mainly working on',
-            rest: 'Comfortable across a wide range of technologies:'
+            rest: 'Comfortable across a wide range of technologies:',
+            a11y: 'Accessibility'
         },
         contact: {
             title: "Let's Talk",
@@ -426,7 +427,8 @@ const messages = {
         },
         capabilities: {
             lead: 'Schwerpunkt:',
-            rest: 'Dazu sicher in einer breiten Palette von Technologien:'
+            rest: 'Dazu sicher in einer breiten Palette von Technologien:',
+            a11y: 'Barrierefreiheit'
         },
         contact: {
             title: 'Lassen Sie uns sprechen',
@@ -464,12 +466,14 @@ const twinHarbourGames = [
     }
 ];
 
-const skills = [
+const baseSkills = [
     'Vue', 'Nuxt', 'React', 'TypeScript', 'JavaScript', 'HTML', 'CSS', 'SCSS', 'Pinia',
     'Pixi.js', 'GSAP', 'Jest', 'Webpack', 'Docker', 'Jenkins', 'Git', 'Figma', 'Adobe XD',
     'Core Web Vitals', 'Selenium', 'Python', 'LangChain', 'Qdrant',
     'Claude Code', 'MCP', 'Opus', 'Astra', 'Codex'
 ];
+
+const skills = computed(() => [...baseSkills, t.value.capabilities.a11y, 'WCAG 2.2']);
 </script>
 <style>
 body:has(.portfolio),
