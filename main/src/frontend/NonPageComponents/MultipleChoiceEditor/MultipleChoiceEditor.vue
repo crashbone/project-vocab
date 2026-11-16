@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { WordManager, type MultipleChoiceQuestion } from '@/wordManagement/wordManager'
 import { prependExample } from '@/composables/useHelpTooltip'
 
@@ -134,9 +134,28 @@ const setFieldEditing = (field: number, on: boolean) => {
 // The parent flips rawView (bottom bar); the data is converted for the newly active view.
 watch(rawView, (raw) => {
     editingField.value = null
-    if (raw) checkedText.value = rawText.value = formatQuestions()
+    if (raw) {
+        const shownQuestion = current.value?.question.trim() ?? ''
+        checkedText.value = rawText.value = formatQuestions()
+        nextTick(() => scrollRawToQuestion(shownQuestion))
+    }
     else setQuestions(wm.setupMultipleChoice(rawText.value, true))
 })
+
+// Scrolls the raw textarea so the shown question's line is in view (without focusing: no mobile keyboard).
+// The line's offset is measured with the text before it, so wrapped lines are counted correctly.
+const scrollRawToQuestion = (questionText: string) => {
+    const el = rawTextarea.value
+    if (!el || questionText === '') return
+    const lines = rawText.value.split('\n')
+    const line = lines.findIndex(l => l.trim().startsWith(questionText))
+    if (line <= 0) return
+    const full = el.value
+    el.value = lines.slice(0, line).join('\n')
+    const offset = el.scrollHeight
+    el.value = full
+    el.scrollTop = Math.max(0, offset - el.clientHeight / 3)
+}
 
 // Raw view: check on click / blur, or when the caret moves to another line.
 const rawTextarea = useTemplateRef<HTMLTextAreaElement>('raw-textarea')

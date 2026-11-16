@@ -46,7 +46,7 @@
                                 </div>
                                 <div class="question">{{ current.question }}</div>
                             </div>
-                            <div class="answers">
+                            <div class="answers" :class="{ 'answers-blurred': answersBlurred }">
                                 <ButtonX v-for="(answer, i) in current.answers" :key="`${questionIndex}-${i}`"
                                          class="size80px"
                                          :class="{
@@ -72,9 +72,10 @@
                 <div v-else-if="!hasQuestions" class="question">This page has no questions.</div>
 
             </div>
-            <!-- Navigation in the same place as in edit (below the question); dimmed in game, active when paused. -->
-            <QuestionNav v-if="inGame" class="content-nav" :index="questionIndex" :total="questions.length"
-                         :disabled="gameState !== 'paused'" @go="goToQuestion" />
+            <!-- Navigation in the same place as in edit (below the question), right above the difficulty sliders.
+                 Active before start (browse only; Play starts from question 1) and while paused. -->
+            <QuestionNav v-if="current && gameState !== 'over'" class="content-nav" :index="questionIndex" :total="questions.length"
+                         :disabled="gameState !== 'paused' && gameState !== 'idle'" @go="goToQuestion" />
 
             <!-- First / last question time, always open outside the game. With preset difficulties it shows that difficulty's values
                  but is locked (so the change is visible); editable only in Custom. -->
@@ -103,24 +104,28 @@
         </div>
 
         <!-- BOTTOM BAR: PageWords bar pattern (pill + icon on top / label below + selected overlay). -->
-        <!-- Outside the game: difficulty on top, Export / Shuffle / Play below. In game: Return on the left, Pause/Resume on the right. -->
+        <!-- Outside the game: difficulty on top, Export / Shuffle / Hide / Play below.
+             In game: Return / Shuffle (remaining questions) / Hide / Pause-Resume. -->
         <div v-if="!editMode" class="bottom-bar edit-bottom-bar game-bottom-bar" :class="{ idle: !inGame }">
             <template v-if="!inGame">
                 <BottomBarButton :items="DIFFICULTIES.map(d => ({
                     label: DIFFICULTY_NAMES[d], active: difficulty === d, click: () => setDifficulty(d),
                 }))" />
-                <!-- Same pill as the PageWords bar: Export left, Shuffle middle, Play right. -->
                 <BottomBarButton class="spread" :items="[
                     { icon: 'export', label: 'Export', click: exportQuestions },
                     { icon: 'shuffle', label: 'Shuffle', iconSize: 20, active: random, click: toggleRandom },
+                    hideItem,
                     ...(hasQuestions ? [{ icon: 'play', label: 'Play', click: startGame }] : []),
                 ]" />
             </template>
-            <!-- Same 3-slot pill as outside the game: Return under Export, Pause/Resume under Play.
-                 Return only while paused; the middle slot is an invisible placeholder. -->
+            <!-- Same 4-slot pill as outside the game: Return / Stop under Export, Pause/Resume under Play.
+                 Paused: Return; running: Stop (same action, pauses first). -->
             <BottomBarButton v-else class="spread" :items="[
-                { icon: 'skip-start', label: 'Return', hidden: gameState !== 'paused', click: confirmReturnToIdle },
-                { icon: 'shuffle', label: 'Shuffle', hidden: true },
+                gameState === 'paused'
+                    ? { icon: 'skip-start', label: 'Return', click: confirmReturnToIdle }
+                    : { icon: 'stop', label: 'Stop', disabled: gameState === 'feedback', click: stopGame },
+                { icon: 'shuffle', label: 'Shuffle', iconSize: 20, disabled: gameState === 'feedback', click: shuffleRemaining },
+                hideItem,
                 {
                     icon: gameState === 'paused' ? 'play' : 'pause',
                     label: gameState === 'paused' ? 'Resume' : 'Pause',
@@ -154,7 +159,7 @@ import {
     Difficulty, DIFFICULTY_NAMES, DIFFICULTY_LOCAL_STORAGE_KEY,
     getQuestionDuration, loadDifficulty, DIFFICULTY_DURATION_RANGES,
     CUSTOM_SLIDER_MAX, isValidCustomDuration, loadCustomDuration, saveCustomDuration,
-    loadRandom, saveRandom, ANSWER_FEEDBACK_MS,
+    loadRandom, saveRandom, loadHideAnswers, saveHideAnswers, ANSWER_FEEDBACK_MS,
 } from "@/wordManagement/Difficulty";
 import { savePageState, loadPageState, clearPageState, PAGE_STATE_KEYS } from "@/junk/pageStateService";
 import { TimeSpentHandler } from "@/junk/TimeSpentHandler";
@@ -249,6 +254,38 @@ const toggleRandom = () => {
     saveRandom(random.value)
     prepareGame()
 }
+
+
+/* ============
+ * === HIDE ===
+ * ============ */
+
+// Persistent setting: changed only before start / while paused / after the game.
+const hideAnswers = ref(loadHideAnswers())
+// In-game override for the current question only (null = follow the setting); reset on every question change.
+const hideOverride = ref<boolean | null>(null)
+const effectiveHide = computed(() => hideOverride.value ?? hideAnswers.value)
+// Result colors must stay readable: never blurred in feedback / over / an answered question.
+const answersBlurred = computed(() => effectiveHide.value && !showCorrect.value)
+
+const toggleHide = () => {
+    if (gameState.value === 'playing') {
+        hideOverride.value = !effectiveHide.value
+        return
+    }
+    hideAnswers.value = !hideAnswers.value
+    hideOverride.value = null
+    saveHideAnswers(hideAnswers.value)
+}
+
+// Icon shows the current state (eye = visible, slashed eye = hidden).
+const hideItem = computed(() => ({
+    icon: effectiveHide.value ? 'eye-slash' : 'eye',
+    label: effectiveHide.value ? 'Show' : 'Hide',
+    iconSize: 20,
+    disabled: gameState.value === 'feedback',
+    click: toggleHide,
+}))
 
 
 /* ============
@@ -354,6 +391,7 @@ const startGame = () => {
 // A question resumes where it left off if time was already spent on it (skipped and revisited).
 const showQuestion = (i: number) => {
     questionIndex.value = i
+    hideOverride.value = null
     pickedIndex.value = -1
     questionDuration.value = getQuestionDuration(i, questions.value.length, difficulty.value) * 1000
     elapsed.value = elapsedPerQuestion.value[i] ?? 0
@@ -415,11 +453,32 @@ const resumeGame = () => {
     rafId = requestAnimationFrame(tick)
 }
 
-// Only while paused; navigating stays paused.
+// While paused (stays paused) or before start (browse only; Play still starts from question 1).
 const goToQuestion = (i: number) => {
-    if (gameState.value !== 'paused' || i < 0 || i >= questions.value.length) return
+    if ((gameState.value !== 'paused' && gameState.value !== 'idle') || i < 0 || i >= questions.value.length) return
     elapsedPerQuestion.value[questionIndex.value] = elapsed.value
     showQuestion(i)
+}
+
+// In game: questions before the current one keep their place; the current one and the rest are shuffled
+// (answered state and time spent move with their question).
+const shuffleRemaining = () => {
+    if (gameState.value !== 'playing' && gameState.value !== 'paused') return
+    const from = questionIndex.value
+    elapsedPerQuestion.value[from] = elapsed.value
+    const order = shuffle(questions.value.slice(from).map((_, k) => from + k))
+    const reorder = <T,>(arr: T[]): T[] => [...arr.slice(0, from), ...order.map(i => arr[i])]
+    questions.value = reorder(questions.value)
+    answered.value = reorder(answered.value)
+    elapsedPerQuestion.value = reorder(elapsedPerQuestion.value)
+    if (gameState.value === 'playing') {
+        // The new current question may already be answered (skipped questions wrap around).
+        const next = answered.value[from] ? nextUnanswered(from) : from
+        if (next === -1) { endGame('done'); return }
+        startQuestion(next)
+    } else {
+        showQuestion(from)
+    }
 }
 
 // While paused, ends the round and returns to difficulty selection (idle); the saved round is deleted too.
@@ -432,6 +491,12 @@ const confirmDeleteQuestion = () => {
             { name: 'Delete', click: () => { closeConfirmationPopup(); mcEditor.value?.deleteCurrentQuestion() } },
         ],
     })
+}
+
+// Running: pauses (timer stops), then asks like Return; Cancel leaves the round paused.
+const stopGame = () => {
+    pauseGame()
+    confirmReturnToIdle()
 }
 
 const confirmReturnToIdle = () => {

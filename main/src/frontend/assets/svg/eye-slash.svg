@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<mask id="eye-slash-cut"><rect width="128" height="128" fill="#fff"/><path d="M14 22 L106 114" stroke="#000" stroke-width="26" stroke-linecap="round"/></mask>
+<g mask="url(#eye-slash-cut)">
+<path fill-rule="evenodd" d="M64 26 C34 26 14 48 6 64 C14 80 34 102 64 102 C94 102 114 80 122 64 C114 48 94 26 64 26 Z M64 42 C76 42 86 52 86 64 C86 76 76 86 64 86 C52 86 42 76 42 64 C42 52 52 42 64 42 Z"/>
+<circle cx="64" cy="64" r="12"/>
+</g>
+<path d="M22.2 21.8 L106.2 105.8 L97.8 114.2 L13.8 30.2 Z"/>
+</svg>

@@ -221,3 +221,20 @@
     }
   }
 }
+
+// ---------- HIDE: answer buttons keep their shape, only the text is blurred ----------
+.page.mc-quiz .answers.answers-blurred .button-content2 .text {
+  filter: blur(7px);
+  user-select: none;
+  transition: filter 0.2s ease;
+}
+
+.page.mc-quiz .answers .button-content2 .text {
+  transition: filter 0.2s ease;
+}
+
+// 4-slot game bar (Export|Return / Shuffle / Hide / Play|Pause): wider than the 3-slot PageWords pill.
+.page .bottom-bar.edit-bottom-bar.game-bottom-bar .bottom-bar-group.spread .liquid-glass-card-slot-content {
+  width: 340px;
+  max-width: calc(100vw - 56px);
+}

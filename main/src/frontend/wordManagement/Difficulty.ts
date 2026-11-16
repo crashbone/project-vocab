@@ -95,6 +95,25 @@ export const saveRandom = (value: boolean) => {
   } catch { /* applies to this session only */ }
 }
 
+/* === HIDE: whether answer texts are blurred (set before start / while paused, persists) === */
+
+export const HIDE_ANSWERS_LOCAL_STORAGE_KEY = 'multipleChoiceHideAnswers'
+export const DEFAULT_HIDE_ANSWERS = false
+
+export const loadHideAnswers = (): boolean => {
+  try {
+    const raw = localStorage.getItem(HIDE_ANSWERS_LOCAL_STORAGE_KEY)
+    if (raw !== null) return raw === 'true'
+  } catch { /* default */ }
+  return DEFAULT_HIDE_ANSWERS
+}
+
+export const saveHideAnswers = (value: boolean) => {
+  try {
+    localStorage.setItem(HIDE_ANSWERS_LOCAL_STORAGE_KEY, String(value))
+  } catch { /* applies to this session only */ }
+}
+
 /* === Answer feedback === */
 
 // How long the correct/wrong animation shows after answering; not taken from the question time.
